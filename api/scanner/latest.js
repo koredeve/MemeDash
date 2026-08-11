@@ -1,9 +1,9 @@
 const { supabase } = require('../../lib/supabase');
-const { pollScanner } = require('../../lib/scanner-poller');
 
 /**
  * GET /api/scanner/latest
- * Fetch latest tokens from scanner cache
+ * Fetch latest tokens from cloud scanner (Supabase)
+ * Updated to work with Vercel Cron-based scanner
  */
 module.exports = async (req, res) => {
   if (req.method !== 'GET') {
@@ -11,10 +11,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Poll scanner for fresh data
-    await pollScanner();
-
-    // Get latest cached tokens (last 50)
+    // Get latest tokens from Supabase (cloud scanner continuously updates this)
     const { data: tokens, error } = await supabase
       .from('tokens')
       .select('*')
@@ -26,7 +23,9 @@ module.exports = async (req, res) => {
     res.status(200).json({
       success: true,
       count: tokens.length,
-      tokens: tokens
+      tokens: tokens || [],
+      source: 'vercel-cron-scanner',
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error fetching latest tokens:', error);

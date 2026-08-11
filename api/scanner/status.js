@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
     const { data: status, error } = await supabase
       .from('scanner_status')
       .select('*')
-      .eq('id', '00000000-0000-0000-0000-000000000001')
+      .eq('id', 1)
       .single();
 
     if (error && error.code === 'PGRST116') {

@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS alert_history (
 
 -- 6. Scanner status table (heartbeat)
 CREATE TABLE IF NOT EXISTS scanner_status (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id BIGINT PRIMARY KEY DEFAULT 1,
   last_scan_time TIMESTAMP,
   scan_count INT DEFAULT 0,
   tokens_detected_today INT DEFAULT 0,

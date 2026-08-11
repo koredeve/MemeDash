@@ -13,8 +13,13 @@
     "SUPABASE_URL",
     "SUPABASE_ANON_KEY",
     "SUPABASE_SERVICE_ROLE_KEY",
-    "SCANNER_API_URL",
     "TELEGRAM_BOT_TOKEN"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/scanner",
+      "schedule": "* * * * *"
+    }
   ],
   "buildOutputDirectory": ".vercel/output"
 }
