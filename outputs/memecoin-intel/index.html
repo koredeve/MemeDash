@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ChainLens Memecoin Intel</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Primary">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">CL</span>
+          <div>
+            <strong>ChainLens</strong>
+            <span>Memecoin Intel</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <a href="#scanner" class="active" data-section-link="scanner">Scanner</a>
+          <a href="#audit" data-section-link="audit">Audit</a>
+          <a href="#wallets" data-section-link="wallets">Wallets</a>
+          <a href="#journal" data-section-link="journal">Journal</a>
+          <a href="#blueprint" data-section-link="blueprint">Blueprint</a>
+        </nav>
+
+        <div class="sidebar-panel">
+          <span class="panel-label">Mode</span>
+          <strong id="source-mode">Live-ready MVP</strong>
+          <p id="source-copy">Uses free public data when reachable, with a simulator fallback for demos and rate-limit protection.</p>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Automated token diligence</p>
+            <h1>Catch structure before emotion takes over.</h1>
+          </div>
+          <div class="status-strip" aria-label="Scanner status">
+            <span><strong id="scan-count">0</strong> pairs scanned</span>
+            <span><strong id="alert-count">0</strong> alerts</span>
+            <span><strong id="watch-count">0</strong> watched</span>
+          </div>
+        </header>
+
+        <section id="scanner" class="section active" data-section="scanner">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Live scanner</p>
+              <h2>New pairs ranked by risk and momentum</h2>
+            </div>
+            <div class="toolbar">
+              <label class="select-label">
+                <span>Source</span>
+                <select id="data-source">
+                  <option value="live">Live free APIs</option>
+                  <option value="demo">Demo simulator</option>
+                </select>
+              </label>
+              <label class="select-label">
+                <span>Filter</span>
+                <select id="scanner-filter">
+                  <option value="all">All tokens</option>
+                  <option value="watch">Watch candidates</option>
+                  <option value="avoid">Avoid only</option>
+                  <option value="clean">Clean only</option>
+                </select>
+              </label>
+              <button id="refresh-scan" type="button" class="icon-button" title="Refresh scanner" aria-label="Refresh scanner">
+                <span aria-hidden="true">↻</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric">
+              <span>Data source</span>
+              <strong id="data-source-status">Demo</strong>
+            </div>
+            <div class="metric">
+              <span>Last refresh</span>
+              <strong id="last-refresh">--</strong>
+            </div>
+            <div class="metric">
+              <span>Median safety</span>
+              <strong id="median-safety">--</strong>
+            </div>
+            <div class="metric">
+              <span>Fake volume flags</span>
+              <strong id="fake-volume-count">--</strong>
+            </div>
+            <div class="metric">
+              <span>Smart wallet hits</span>
+              <strong id="smart-hit-count">--</strong>
+            </div>
+            <div class="metric">
+              <span>High-liquidity pairs</span>
+              <strong id="liquidity-count">--</strong>
+            </div>
+          </div>
+
+          <div class="scanner-layout">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Token</th>
+                    <th>Signal</th>
+                    <th>Safety</th>
+                    <th>Liquidity</th>
+                    <th>Volume Quality</th>
+                    <th>Smart Money</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="pair-table"></tbody>
+              </table>
+            </div>
+            <aside class="detail-panel" id="scanner-detail" aria-live="polite"></aside>
+          </div>
+        </section>
+
+        <section id="audit" class="section" data-section="audit">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Contract audit</p>
+              <h2>Paste a token address and get an explainable risk read</h2>
+            </div>
+          </div>
+
+          <form id="audit-form" class="audit-form">
+            <label>
+              <span>Token contract</span>
+              <input id="contract-input" type="text" autocomplete="off" placeholder="Example: 7bX9...pump">
+            </label>
+            <button type="submit">Run Audit</button>
+          </form>
+
+          <div class="audit-grid">
+            <div class="score-panel">
+              <canvas id="score-gauge" width="260" height="160" aria-label="Safety score gauge"></canvas>
+              <div class="score-copy">
+                <span id="audit-verdict">No audit yet</span>
+                <strong id="audit-score">--</strong>
+                <p id="audit-summary">Paste a token address to generate a deterministic diligence report.</p>
+              </div>
+            </div>
+            <div class="factor-list" id="factor-list"></div>
+          </div>
+        </section>
+
+        <section id="wallets" class="section" data-section="wallets">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Wallet intelligence</p>
+              <h2>Track wallets that repeatedly arrive before the crowd</h2>
+            </div>
+          </div>
+
+          <form id="wallet-form" class="audit-form compact">
+            <label>
+              <span>Wallet address</span>
+              <input id="wallet-input" type="text" autocomplete="off" placeholder="Paste wallet address">
+            </label>
+            <label>
+              <span>Label</span>
+              <input id="wallet-label" type="text" autocomplete="off" placeholder="Early accumulator">
+            </label>
+            <button type="submit">Track</button>
+          </form>
+
+          <div class="wallet-grid" id="wallet-grid"></div>
+        </section>
+
+        <section id="journal" class="section" data-section="journal">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Risk discipline</p>
+              <h2>Journal entries before the trade becomes a story</h2>
+            </div>
+          </div>
+
+          <form id="journal-form" class="journal-form">
+            <label><span>Token</span><input id="journal-token" placeholder="Ticker or contract"></label>
+            <label><span>Thesis</span><textarea id="journal-thesis" placeholder="Why this setup is worth watching"></textarea></label>
+            <label><span>Invalidation</span><textarea id="journal-invalid" placeholder="What would prove this trade wrong"></textarea></label>
+            <label><span>Risk %</span><input id="journal-risk" type="number" min="0.1" max="100" step="0.1" value="1"></label>
+            <button type="submit">Save Entry</button>
+          </form>
+
+          <div class="journal-list" id="journal-list"></div>
+        </section>
+
+        <section id="blueprint" class="section" data-section="blueprint">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Build map</p>
+              <h2>How this becomes a real automated product</h2>
+            </div>
+          </div>
+
+          <div class="blueprint-grid">
+            <article>
+              <h3>Data ingestion</h3>
+              <p>Use DexScanner and Dexscreener in-browser for free live feeds. Add Pump.fun through a backend proxy because its frontend API is CORS-protected.</p>
+            </article>
+            <article>
+              <h3>Risk engine</h3>
+              <p>Score liquidity, deployer behavior, holder clusters, bundle activity, fee-to-volume quality, smart wallet overlap, and timing.</p>
+            </article>
+            <article>
+              <h3>Alert layer</h3>
+              <p>Let users define rules like minimum liquidity, revoked mint authority, clean deployer, and two tracked wallets entering together.</p>
+            </article>
+            <article>
+              <h3>Own indexer</h3>
+              <p>Store new pairs, mint accounts, creator wallets, and first buyers in our database so we reduce dependency on third-party rate limits.</p>
+            </article>
+            <article>
+              <h3>Execution guardrails</h3>
+              <p>Keep v1 research-only. Add semi-automated trading later with hard caps, allowlists, slippage controls, cooldowns, and manual approval.</p>
+            </article>
+          </div>
+
+          <div class="pipeline">
+            <span>New pair</span>
+            <span>Normalize</span>
+            <span>Score</span>
+            <span>Explain</span>
+            <span>Alert</span>
+            <span>Journal</span>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

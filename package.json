@@ -1,0 +1,22 @@
+{
+  "name": "memedash",
+  "version": "1.0.0",
+  "description": "Real-time memecoin alert system with Vercel + Supabase + Telegram",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build",
+    "start": "vercel start"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "@supabase/supabase-js": "^2.38.0",
+    "node-fetch": "^3.3.2",
+    "axios": "^1.5.0"
+  },
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
