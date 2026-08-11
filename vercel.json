@@ -20,4 +20,5 @@
       "path": "/api/cron/scanner",
       "schedule": "* * * * *"
     }
- 
+  ]
+}
