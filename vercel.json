@@ -20,6 +20,4 @@
       "path": "/api/cron/scanner",
       "schedule": "* * * * *"
     }
-  ],
-  "buildOutputDirectory": ".vercel/output"
-}
+ 
