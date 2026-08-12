@@ -78,6 +78,16 @@ module.exports = async (req, res) => {
 
         scanned++;
 
+        // Check if token already exists (to detect status changes)
+        const { data: existingTokens } = await supabase
+          .from("tokens")
+          .select("status, detected_at")
+          .eq("mint", boost.tokenAddress)
+          .limit(1);
+
+        const existingToken =
+          existingTokens && existingTokens.length > 0 ? existingTokens[0] : null;
+
         // Score the token
         const scored = scoreToken({
           liquidity,
@@ -104,7 +114,18 @@ module.exports = async (req, res) => {
         const isHighQuality =
           scored.classification === "clean" ||
           (scored.classification === "watch" && scored.score >= 65); // Watch must be high quality
-        const shouldAlert = hasOrganicVolume && isHighQuality && liquidity >= 50000;
+
+        // Detect status changes
+        const previousStatus = existingToken?.status;
+        const statusChanged = previousStatus && previousStatus !== scored.classification;
+        const isNewToken = !existingToken;
+
+        // Only alert if: (1) NEW token, or (2) STATUS CHANGED
+        const shouldAlert =
+          hasOrganicVolume &&
+          isHighQuality &&
+          liquidity >= 50000 &&
+          (isNewToken || statusChanged); // ONLY on new or status change!
 
         // Store in database (including market cap)
         await supabase.from("tokens").upsert(
@@ -120,7 +141,7 @@ module.exports = async (req, res) => {
             fomo_pressure: scored.fomoPressure,
             fake_volume: scored.isFakeVolume,
             deployer_rugs: 0,
-            detected_at: new Date().toISOString(),
+            detected_at: isNewToken ? new Date().toISOString() : existingToken.detected_at,
             // Add market data
             market_cap: marketCap,
             fdv: fdv,
@@ -129,7 +150,7 @@ module.exports = async (req, res) => {
           { onConflict: "mint" }
         );
 
-        // Send alert ONLY if organic volume + clean/watch score
+        // Send alert ONLY if: new token OR status changed (not every scan!)
         if (shouldAlert) {
           alerted++;
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
