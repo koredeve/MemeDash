@@ -42,7 +42,8 @@
       background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1433 100%);
       color: var(--text-primary);
       line-height: 1.6;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     .app-container {
@@ -191,11 +192,9 @@
       padding: 24px 32px;
       border-bottom: 1px solid var(--border);
       background: var(--bg-surface);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      max-height: 40vh;
-      overflow-y: auto;
+      position: relative;
+      z-index: 50;
+      flex-shrink: 0;
     }
 
     .header-top {
@@ -329,10 +328,12 @@
     .token-list {
       flex: 1;
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 16px 32px;
       display: flex;
       flex-direction: column;
       gap: 12px;
+      min-height: 0;
     }
 
     .token-item {
@@ -540,12 +541,14 @@
         position: fixed;
         left: -280px;
         top: 0;
-        height: 100vh;
+        height: 100%;
         width: 280px;
         z-index: 999;
         transition: left 0.3s ease;
         border-right: 1px solid var(--border);
         box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+        overflow-y: auto;
+        padding-top: 60px;
       }
 
       .sidebar.active {
@@ -558,10 +561,10 @@
 
       .header {
         padding: 12px 16px;
-        max-height: none;
         position: static;
         overflow: visible;
-        margin-top: 16px;
+        margin-top: 40px;
+        margin-bottom: 0;
       }
 
       .header-top {
