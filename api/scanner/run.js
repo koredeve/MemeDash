@@ -165,7 +165,7 @@ module.exports = async (req, res) => {
         // 2. Alert on STATUS CHANGES (especially to AVOID = rug detection!)
         // 3. Alert on RUGGED tokens (warn user to avoid)
         const shouldAlert =
-          (isNewToken && hasOrganicVolume && isHighQuality && liquidity >= 25000) ||  // Match scan filter: $25k min liquidity
+          isNewToken && hasOrganicVolume && isHighQuality && liquidity >= 50000 ||
           (statusChanged && (scored.classification === 'clean' || isRugged)); // Alert on improvement OR rug detection!
 
         // Store in database (including market cap)
@@ -269,30 +269,19 @@ module.exports = async (req, res) => {
 ⏰ Age: ${pairAge}m old`;
             }
 
-            try {
-              const tgResponse = await fetch(
-                `https://api.telegram.org/bot${botToken}/sendMessage`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    chat_id: chatId,
-                    text: message,
-                    parse_mode: "Markdown",
-                    disable_web_page_preview: false,
-                  }),
-                }
-              );
-
-              const tgData = await tgResponse.json();
-              if (!tgData.ok) {
-                console.error(`[TELEGRAM] Failed to send alert for ${baseToken.symbol}: ${tgData.description}`);
-              } else {
-                console.log(`[TELEGRAM] Alert sent for ${baseToken.symbol} (${scored.classification})`);
+            await fetch(
+              `https://api.telegram.org/bot${botToken}/sendMessage`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  chat_id: chatId,
+                  text: message,
+                  parse_mode: "Markdown",
+                  disable_web_page_preview: false,
+                }),
               }
-            } catch (tgError) {
-              console.error(`[TELEGRAM] Error sending alert for ${baseToken.symbol}:`, tgError.message);
-            }
+            );
           }
         }
       } catch (error) {
