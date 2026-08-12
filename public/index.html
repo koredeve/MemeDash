@@ -668,9 +668,10 @@
                   📊 ${fakeVolumeWarning}
                 </div>
               </div>
-              <div style="margin-top: 8px; display: flex; gap: 8px;">
-                <a href="https://dexscreener.com/solana/${token.mint}" target="_blank" style="color: var(--cyan); font-size: 12px; text-decoration: underline;">🔗 View DexScreener</a>
-                <button onclick="event.stopPropagation(); sendAuditToTelegram('${token.mint}', '${token.symbol}')" style="padding: 4px 12px; background: var(--blue); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">📊 Run Audit</button>
+              <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="https://dexscreener.com/solana/${token.mint}" target="_blank" style="color: var(--cyan); font-size: 12px; text-decoration: underline;">🔗 DexScreener</a>
+                <button onclick="event.stopPropagation(); sendAuditToTelegram('${token.mint}', '${token.symbol}')" style="padding: 4px 12px; background: var(--blue); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">📊 Audit</button>
+                ${status === 'watch' ? `<button onclick="event.stopPropagation(); trackWatchToken('${token.mint}', '${token.symbol}')" style="padding: 4px 12px; background: var(--yellow-dark); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">📌 Track</button>` : ''}
               </div>
             </div>
             <div class="token-right">
@@ -753,6 +754,34 @@
         } else {
           alert('❌ Error: ' + data.error);
           document.getElementById('sync-status').textContent = '⚠️ Error sending audit';
+        }
+      } catch (error) {
+        alert('❌ ' + error.message);
+        document.getElementById('sync-status').textContent = '⚠️ Error';
+      }
+    }
+
+    async function trackWatchToken(mint, symbol) {
+      try {
+        document.getElementById('sync-status').textContent = '📌 Tracking token...';
+
+        const response = await fetch('/api/tokens/track-watch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tokenAddress: mint,
+            symbol: symbol
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('✅ Now tracking $' + symbol + '!\n\nYou\'ll get alerted when it graduates to CLEAN status.');
+          document.getElementById('sync-status').textContent = '✓ Token tracked';
+        } else {
+          alert('❌ Error: ' + data.error);
+          document.getElementById('sync-status').textContent = '⚠️ Error tracking';
         }
       } catch (error) {
         alert('❌ ' + error.message);
