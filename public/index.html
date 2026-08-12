@@ -301,7 +301,7 @@
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 24px;
-      align-items: center;
+      align-items: flex-start;
     }
 
     .token-item:hover {
@@ -473,6 +473,178 @@
 
       .token-item {
         grid-template-columns: 1fr;
+      }
+    }
+
+    /* MOBILE VIEW */
+    @media (max-width: 768px) {
+      body {
+        padding: 16px;
+      }
+
+      .app-container {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .main-content {
+        height: auto;
+      }
+
+      .header {
+        padding: 16px;
+      }
+
+      .header-top {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header-title {
+        font-size: 1.8em;
+      }
+
+      .metrics-row {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+      }
+
+      .metric-card {
+        padding: 12px;
+      }
+
+      .metric-value {
+        font-size: 18px;
+      }
+
+      .filters {
+        padding: 12px 16px;
+        overflow-x: auto;
+        gap: 8px;
+      }
+
+      .filter-btn {
+        padding: 8px 14px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .token-list {
+        padding: 12px 0;
+        gap: 10px;
+      }
+
+      .token-item {
+        padding: 12px;
+        gap: 12px;
+      }
+
+      .token-symbol {
+        font-size: 14px;
+      }
+
+      .token-info {
+        font-size: 11px;
+        gap: 8px;
+      }
+
+      .score-number {
+        font-size: 18px;
+      }
+
+      .status-badge-item {
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+
+      .btn {
+        padding: 10px 14px;
+        font-size: 12px;
+        width: 100%;
+      }
+
+      .header-controls {
+        width: 100%;
+      }
+
+      .header-controls .btn {
+        width: auto;
+        flex: 1;
+      }
+    }
+
+    /* SMALL MOBILE VIEW */
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+
+      .header-title {
+        font-size: 1.5em;
+      }
+
+      .metrics-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .metric-card {
+        padding: 10px;
+      }
+
+      .metric-label {
+        font-size: 10px;
+      }
+
+      .metric-value {
+        font-size: 16px;
+      }
+
+      .metric-sub {
+        font-size: 10px;
+      }
+
+      .token-left {
+        gap: 6px;
+      }
+
+      .token-header {
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .token-info {
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .info-item {
+        font-size: 10px;
+      }
+
+      .score-display {
+        gap: 2px;
+      }
+
+      .score-number {
+        font-size: 16px;
+      }
+
+      .score-bar {
+        width: 35px;
+      }
+
+      .status-badge-item {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+
+      .filter-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+      }
+
+      button {
+        touch-action: manipulation;
       }
     }
   </style>
@@ -668,10 +840,10 @@
                   📊 ${fakeVolumeWarning}
                 </div>
               </div>
-              <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
-                <a href="https://dexscreener.com/solana/${token.mint}" target="_blank" style="color: var(--cyan); font-size: 12px; text-decoration: underline;">🔗 DexScreener</a>
-                <button onclick="event.stopPropagation(); sendAuditToTelegram('${token.mint}', '${token.symbol}')" style="padding: 4px 12px; background: var(--blue); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">📊 Audit</button>
-                ${status === 'watch' ? `<button onclick="event.stopPropagation(); trackWatchToken('${token.mint}', '${token.symbol}')" style="padding: 4px 12px; background: var(--yellow-dark); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">📌 Track</button>` : ''}
+              <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; width: 100%;">
+                <a href="https://dexscreener.com/solana/${token.mint}" target="_blank" style="color: var(--cyan); font-size: 12px; text-decoration: underline; padding: 6px 8px;">🔗 Dex</a>
+                <button onclick="event.stopPropagation(); sendAuditToTelegram('${token.mint}', '${token.symbol}')" style="padding: 6px 10px; background: var(--blue); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600; touch-action: manipulation;">📊 Audit</button>
+                ${status === 'watch' ? `<button onclick="event.stopPropagation(); trackWatchToken('${token.mint}', '${token.symbol}')" style="padding: 6px 10px; background: var(--yellow-dark); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600; touch-action: manipulation;">📌 Track</button>` : ''}
               </div>
             </div>
             <div class="token-right">
