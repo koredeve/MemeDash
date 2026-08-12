@@ -10,28 +10,21 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { data: status, error } = await supabase
+    const { data: statuses, error } = await supabase
       .from('scanner_status')
       .select('*')
-      .eq('id', 1)
-      .single();
-
-    if (error && error.code === 'PGRST116') {
-      // No rows found, return healthy default
-      return res.status(200).json({
-        success: true,
-        status: {
-          is_healthy: true,
-          last_scan_time: null,
-          scan_count: 0,
-          tokens_detected_today: 0,
-          alerts_sent_today: 0,
-          error_message: null
-        }
-      });
-    }
+      .limit(1);
 
     if (error) throw error;
+
+    const status = statuses && statuses.length > 0 ? statuses[0] : {
+      is_healthy: true,
+      last_scan_time: null,
+      scan_count: 0,
+      tokens_detected_today: 0,
+      alerts_sent_today: 0,
+      error_message: null
+    };
 
     res.status(200).json({
       success: true,
