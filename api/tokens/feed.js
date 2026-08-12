@@ -24,10 +24,10 @@ module.exports = async (req, res) => {
       query = query.eq("status", status);
     }
 
-    // Apply pagination
-    const { data: tokens, error } = await query
-      .limit(parseInt(limit))
-      .offset(parseInt(offset));
+    // Apply pagination using range
+    const limitInt = parseInt(limit);
+    const offsetInt = parseInt(offset);
+    const { data: tokens, error } = await query.range(offsetInt, offsetInt + limitInt - 1);
 
     if (error) throw error;
 
