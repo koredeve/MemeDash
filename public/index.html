@@ -852,14 +852,18 @@
     });
 
     const sidebarItems = document.querySelectorAll('[data-view]');
+    console.log('Found', sidebarItems.length, 'sidebar items with [data-view]');
     sidebarItems.forEach(item => {
       item.addEventListener('click', () => {
+        const viewName = item.dataset.view;
+        console.log('Sidebar view clicked:', viewName);
         sidebarItems.forEach(i => i.classList.remove('active'));
         item.classList.add('active');
-        currentFilter = item.dataset.view;
+        currentFilter = viewName;
         document.querySelectorAll('.filter-btn').forEach(b => {
           b.classList.toggle('active', b.dataset.filter === currentFilter);
         });
+        console.log('Filter changed to:', currentFilter, 'Rendering tokens...');
         renderTokens();
       });
     });
@@ -1026,6 +1030,7 @@
 
     async function trackWatchToken(mint, symbol) {
       try {
+        console.log('trackWatchToken called with mint:', mint, 'symbol:', symbol);
         document.getElementById('sync-status').textContent = '📌 Tracking token...';
 
         const response = await fetch('/api/tokens/track-watch', {
@@ -1038,11 +1043,14 @@
         });
 
         const data = await response.json();
+        console.log('Track response:', data);
 
         if (data.success) {
+          console.log('Token tracked successfully');
           alert('✅ Now tracking $' + symbol + '!\n\nYou\'ll get alerted when it graduates to CLEAN status.');
           document.getElementById('sync-status').textContent = '✓ Token tracked';
         } else {
+          console.error('Track failed:', data.error);
           alert('❌ Error: ' + data.error);
           document.getElementById('sync-status').textContent = '⚠️ Error tracking';
         }
@@ -1077,8 +1085,13 @@ Click "Run Audit" to send detailed report to Telegram with:
     function toggleMobileMenu() {
       const sidebar = document.querySelector('.sidebar');
       const btn = document.querySelector('.mobile-menu-btn');
+      if (!sidebar || !btn) {
+        console.error('Mobile menu elements not found!');
+        return;
+      }
       sidebar.classList.toggle('active');
       btn.classList.toggle('active');
+      console.log('Menu toggled. Active:', sidebar.classList.contains('active'));
     }
 
     function closeMobileMenu() {
