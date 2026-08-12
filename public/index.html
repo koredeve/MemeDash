@@ -387,6 +387,12 @@
       flex-direction: column;
       gap: 12px;
       min-height: 0;
+      padding-bottom: 40px;
+    }
+
+    .token-list footer {
+      margin-top: auto;
+      flex-shrink: 0;
     }
 
     .token-item {
@@ -963,15 +969,15 @@
           <div class="empty-state-icon">⏳</div>
           <div>Loading tokens...</div>
         </div>
+
+        <!-- FOOTER (inside scrollable content) -->
+        <footer style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: auto;">
+          <p>Built by <a href="https://github.com/koredeve" style="color: var(--blue); text-decoration: none; font-weight: 600;">koredeve</a> • Powered by MemeDash • Real-time Memecoin Alerts</p>
+          <p style="margin-top: 8px; font-size: 11px;">© 2026 MemeDash. All rights reserved.</p>
+        </footer>
       </div>
     </main>
   </div>
-
-  <!-- FOOTER -->
-  <footer style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px;">
-    <p>Built by <a href="https://github.com/koredeve" style="color: var(--blue); text-decoration: none; font-weight: 600;">koredeve</a> • Powered by MemeDash • Real-time Memecoin Alerts</p>
-    <p style="margin-top: 8px; font-size: 11px;">© 2026 MemeDash. All rights reserved.</p>
-  </footer>
 
   <!-- MODALS -->
   <div id="helpModal" class="modal-overlay">
