@@ -9,12 +9,6 @@
       "maxDuration": 60
     }
   },
-  "env": [
-    "SUPABASE_URL",
-    "SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "TELEGRAM_BOT_TOKEN"
-  ],
   "crons": [
     {
       "path": "/api/cron/scanner",
