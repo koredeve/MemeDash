@@ -56,9 +56,21 @@ module.exports = async (req, res) => {
         const baseToken = pair.baseToken || {};
         const liquidity = Number(pair.liquidity?.usd || 0);
         const volume = Number(pair.volume?.h24 || 0);
+        const pairAge = pair.pairCreatedAt ? Math.round((Date.now() - pair.pairCreatedAt) / 60000) : 0;
 
-        // Only alert on meaningful liquidity
-        if (liquidity < 5000) continue;
+        // QUALITY FILTERS - Only scan tokens with real fundamentals
+        // 1. Meaningful liquidity (not trash tier)
+        if (liquidity < 25000) continue;
+
+        // 2. Decent volume (not a ghost token)
+        if (volume < 50000) continue;
+
+        // 3. Not brand new (avoid instant rugs)
+        if (pairAge < 15 && liquidity < 100000) continue; // If <15 min old, need $100k+ liquidity
+
+        // 4. Holder count (real community, not whale trap)
+        const txCount = Number(pair.txns?.h24?.buys || 0) + Number(pair.txns?.h24?.sells || 0);
+        if (txCount < 50 && liquidity < 75000) continue; // Low activity + low liq = rug risk
 
         scanned++;
 
@@ -82,11 +94,13 @@ module.exports = async (req, res) => {
           sellsM5: Number(pair.txns?.m5?.sells || 0),
         });
 
-        // IMPORTANT: Filter out fake volume tokens
-        const hasOrganicVolume = !scored.isFakeVolume && scored.volumeRatio < 20;
-        const shouldAlert =
-          hasOrganicVolume &&
-          (scored.classification === "clean" || scored.classification === "watch");
+        // IMPORTANT: Smart alert filtering
+        // Only alert on REAL keeper tokens with organic volume
+        const hasOrganicVolume = !scored.isFakeVolume && scored.volumeRatio < 15;
+        const isHighQuality =
+          scored.classification === "clean" ||
+          (scored.classification === "watch" && scored.score >= 65); // Watch must be high quality
+        const shouldAlert = hasOrganicVolume && isHighQuality && liquidity >= 50000;
 
         // Store in database
         await supabase.from("tokens").upsert(
