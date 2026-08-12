@@ -82,10 +82,11 @@ module.exports = async (req, res) => {
           sellsM5: Number(pair.txns?.m5?.sells || 0),
         });
 
-        // Check if we should alert
+        // IMPORTANT: Filter out fake volume tokens
+        const hasOrganicVolume = !scored.isFakeVolume && scored.volumeRatio < 20;
         const shouldAlert =
-          scored.classification === "clean" ||
-          scored.classification === "watch";
+          hasOrganicVolume &&
+          (scored.classification === "clean" || scored.classification === "watch");
 
         // Store in database
         await supabase.from("tokens").upsert(
@@ -99,14 +100,14 @@ module.exports = async (req, res) => {
             liquidity,
             volume,
             fomo_pressure: scored.fomoPressure,
-            fake_volume: scored.factors?.find(f => f.name === "Volume quality")?.score < 30,
+            fake_volume: scored.isFakeVolume,
             deployer_rugs: 0,
             detected_at: new Date().toISOString(),
           },
           { onConflict: "mint" }
         );
 
-        // Send alert if meets criteria
+        // Send alert ONLY if organic volume + clean/watch score
         if (shouldAlert) {
           alerted++;
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -114,14 +115,18 @@ module.exports = async (req, res) => {
 
           if (botToken) {
             const emoji = scored.classification === "clean" ? "✨" : "🔔";
-            const message = `${emoji} *${scored.classification.toUpperCase()}*
+            const volumeStatus = scored.volumeRatio > 10 ? "⚠️ High vol ratio" : "✓ Organic";
 
-🔹 $${baseToken.symbol || "TOKEN"}
-📊 Score: *${scored.score}/100*
-💧 Liquidity: $${Math.round(liquidity)}
-📈 Volume: $${Math.round(volume)}
+            const message = `${emoji} *${scored.classification.toUpperCase()}* | ${volumeStatus}
 
-👉 [View](https://dexscreener.com/solana/${boost.tokenAddress})`;
+💰 $${baseToken.symbol || "TOKEN"}
+📊 Score: *${scored.score}/100* (${scored.verdict})
+💧 Liquidity: $${(liquidity / 1000).toFixed(1)}k
+📈 Volume (24h): $${(volume / 1000).toFixed(1)}k
+🔄 Vol/Liq Ratio: ${scored.volumeRatio}x
+
+🔗 [View on DexScreener](https://dexscreener.com/solana/${boost.tokenAddress})
+📊 [Audit Details →](https://lightmeme.vercel.app/?token=${boost.tokenAddress})`;
 
             await fetch(
               `https://api.telegram.org/bot${botToken}/sendMessage`,
@@ -132,7 +137,7 @@ module.exports = async (req, res) => {
                   chat_id: chatId,
                   text: message,
                   parse_mode: "Markdown",
-                  disable_web_page_preview: true,
+                  disable_web_page_preview: false,
                 }),
               }
             );
