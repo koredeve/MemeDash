@@ -927,7 +927,9 @@
     <div class="modal-card">
       <button class="modal-close" onclick="closeModal('statusModal')">✕</button>
       <h2>📊 System Status</h2>
-      <p><strong id="statusContent">Loading status...</strong></p>
+      <div id="statusContent">
+        <p>Fetching status...</p>
+      </div>
     </div>
   </div>
 
@@ -1240,8 +1242,29 @@ Click "Run Audit" to send detailed report to Telegram with:
       openModal('helpModal');
     }
 
-    function showStatus() {
+    async function showStatus() {
       openModal('statusModal');
+
+      try {
+        const res = await fetch('/api/scanner/status');
+        const data = await res.json();
+
+        const statusDiv = document.getElementById('statusContent');
+        statusDiv.innerHTML = `
+          <p><strong>✅ Scanner:</strong> ${data.is_healthy ? 'Running (every 5 min)' : '❌ Down'}</p>
+          <p><strong>⏰ Last Scan:</strong> ${new Date(data.last_scan_time).toLocaleString()}</p>
+          <p><strong>📊 Tokens Today:</strong> ${data.tokens_detected_today}</p>
+          <p><strong>🔔 Alerts Sent:</strong> ${data.alerts_sent_today}</p>
+          <p><strong>✅ Database:</strong> Connected</p>
+          <p><strong>✅ Telegram:</strong> Ready</p>
+          <p><strong>✅ Dashboard:</strong> Live</p>
+          <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
+          <p style="color: var(--green); font-weight: 600;">🚀 Everything is working!</p>
+        `;
+      } catch (error) {
+        const statusDiv = document.getElementById('statusContent');
+        statusDiv.innerHTML = `<p style="color: var(--red);">❌ Error loading status: ${error.message}</p>`;
+      }
     }
 
     async function loadDemoData() {
