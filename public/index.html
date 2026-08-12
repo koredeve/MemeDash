@@ -1256,13 +1256,18 @@ Click "Run Audit" to send detailed report to Telegram with:
       try {
         const res = await fetch('/api/scanner/status');
         const data = await res.json();
+        const status = data.status || data; // Handle both nested and flat responses
 
         const statusDiv = document.getElementById('statusContent');
+        const lastScanTime = status.last_scan_time
+          ? new Date(status.last_scan_time).toLocaleString()
+          : 'Never';
+
         statusDiv.innerHTML = `
-          <p><strong>✅ Scanner:</strong> ${data.is_healthy ? 'Running (every 5 min)' : '❌ Down'}</p>
-          <p><strong>⏰ Last Scan:</strong> ${new Date(data.last_scan_time).toLocaleString()}</p>
-          <p><strong>📊 Tokens Today:</strong> ${data.tokens_detected_today}</p>
-          <p><strong>🔔 Alerts Sent:</strong> ${data.alerts_sent_today}</p>
+          <p><strong>✅ Scanner:</strong> ${status.is_healthy ? 'Running (every 5 min)' : '❌ Down'}</p>
+          <p><strong>⏰ Last Scan:</strong> ${lastScanTime}</p>
+          <p><strong>📊 Tokens Today:</strong> ${status.tokens_detected_today || 0}</p>
+          <p><strong>🔔 Alerts Sent:</strong> ${status.alerts_sent_today || 0}</p>
           <p><strong>✅ Database:</strong> Connected</p>
           <p><strong>✅ Telegram:</strong> Ready</p>
           <p><strong>✅ Dashboard:</strong> Live</p>
