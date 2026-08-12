@@ -571,9 +571,7 @@
         grid-template-columns: 1fr;
       }
 
-      .sidebar {
-        display: none;
-      }
+      /* Don't hide sidebar here - let mobile media query handle it */
 
       .token-right {
         grid-column: 1 / -1;
@@ -586,8 +584,8 @@
       }
     }
 
-    /* MOBILE VIEW */
-    @media (max-width: 768px) {
+    /* TABLET & MOBILE VIEW - Hide sidebar in grid, show as overlay */
+    @media (max-width: 1024px) {
       body {
         padding: 0;
       }
