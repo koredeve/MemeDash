@@ -511,6 +511,7 @@
         <div class="sidebar-item" onclick="testAlert()">🧪 Send Test Alert</div>
         <div class="sidebar-item" onclick="configWebhook()">🔗 Setup Telegram</div>
         <div class="sidebar-item" onclick="refreshData()">🔄 Refresh Now</div>
+        <div class="sidebar-item" onclick="loadDemoData()" style="background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5);">📊 Load Demo Data</div>
       </div>
     </aside>
 
@@ -724,11 +725,61 @@
       loadTokens();
     }
 
+    async function loadDemoData() {
+      try {
+        document.getElementById('sync-status').textContent = '⏳ Loading demo data...';
+
+        const demoTokens = [
+          { symbol: 'MONK', score: 82, status: 'clean', liquidity: 85000, volume: 250000 },
+          { symbol: 'DOGE', score: 68, status: 'watch', liquidity: 45000, volume: 120000 },
+          { symbol: 'SHIB', score: 72, status: 'watch', liquidity: 92000, volume: 320000 },
+          { symbol: 'PEPE', score: 58, status: 'avoid', liquidity: 12000, volume: 45000 },
+          { symbol: 'FLOKI', score: 79, status: 'clean', liquidity: 110000, volume: 420000 },
+          { symbol: 'BONK', score: 65, status: 'watch', liquidity: 38000, volume: 95000 },
+          { symbol: 'WIF', score: 81, status: 'clean', liquidity: 75000, volume: 280000 },
+          { symbol: 'MUMU', score: 52, status: 'avoid', liquidity: 8000, volume: 28000 }
+        ];
+
+        for (const token of demoTokens) {
+          await fetch('/api/tokens/score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tokenAddress: `demo_${token.symbol}_${Math.random().toString(36).slice(2)}`,
+              symbol: token.symbol,
+              name: `${token.symbol} Token`,
+              liquidity: token.liquidity,
+              volume: token.volume,
+              fees: token.volume * 0.003,
+              holders: Math.random() * 5000 + 100,
+              topTen: Math.random() * 40 + 10,
+              smartHits: Math.random() > 0.5 ? 1 : 0,
+              deployerAge: Math.random() * 180,
+              deployerRugs: token.status === 'avoid' ? 1 : 0,
+              mintRevoked: true,
+              freezeRevoked: true,
+              fakeVolume: token.status === 'avoid',
+              m5Volume: Math.random() * 10000,
+              priceChangeM5: Math.random() * 10 - 5,
+              buysM5: Math.random() * 100,
+              sellsM5: Math.random() * 100
+            })
+          });
+        }
+
+        await loadTokens();
+        document.getElementById('sync-status').textContent = '✅ Demo data loaded!';
+      } catch (error) {
+        console.error('Demo data error:', error);
+        document.getElementById('sync-status').textContent = '❌ Error loading demo data';
+      }
+    }
+
     // Load tokens on startup
     loadTokens();
 
-    // Refresh every 30 seconds
-    setInterval(loadTokens, 30000);
+    // Refresh every 5 minutes (300000ms)
+    setInterval(loadTokens, 300000);
   </script>
 </body>
 </html>
