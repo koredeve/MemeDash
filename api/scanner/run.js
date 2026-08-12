@@ -291,7 +291,7 @@ module.exports = async (req, res) => {
     }
 
     // Update scanner status
-    await supabase.from("scanner_status").upsert({
+    const { data: statusData, error: statusError } = await supabase.from("scanner_status").upsert({
       id: 1,
       last_scan_time: new Date().toISOString(),
       scan_count: 1,
@@ -300,11 +300,16 @@ module.exports = async (req, res) => {
       is_healthy: true,
     });
 
+    if (statusError) {
+      console.error("[SCANNER] Status update failed:", statusError);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Scan complete",
       scanned,
       alerted,
+      status_error: statusError ? statusError.message : null,
     });
   } catch (error) {
     console.error("[SCANNER] Error:", error);
