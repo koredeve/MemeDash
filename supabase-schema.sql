@@ -17,12 +17,17 @@ CREATE TABLE IF NOT EXISTS tokens (
   name VARCHAR,
   symbol VARCHAR,
   score FLOAT,
+  verdict VARCHAR,
+  status VARCHAR CHECK (status IN ('clean', 'watch', 'avoid', 'neutral')),
   liquidity DECIMAL,
+  volume DECIMAL,
   volume_5m DECIMAL,
   volume_24h DECIMAL,
   fdv DECIMAL,
   age_minutes INT,
-  fomo_score INT,
+  fomo_pressure INT,
+  deployer_rugs INT DEFAULT 0,
+  fake_volume BOOLEAN DEFAULT false,
   detected_at TIMESTAMP,
   last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
