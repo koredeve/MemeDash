@@ -13,6 +13,7 @@ module.exports = async (req, res) => {
     const { data: statuses, error } = await supabase
       .from('scanner_status')
       .select('*')
+      .eq('id', '00000000-0000-0000-0000-000000000001')
       .limit(1);
 
     if (error) throw error;

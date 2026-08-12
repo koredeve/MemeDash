@@ -290,9 +290,9 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Update scanner status
+    // Update scanner status (using fixed UUID for the single scanner status record)
     const { data: statusData, error: statusError } = await supabase.from("scanner_status").upsert({
-      id: 1,
+      id: '00000000-0000-0000-0000-000000000001',
       last_scan_time: new Date().toISOString(),
       scan_count: 1,
       tokens_detected_today: scanned,
