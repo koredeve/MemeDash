@@ -104,7 +104,7 @@ module.exports = async (req, res) => {
           (scored.classification === "watch" && scored.score >= 65); // Watch must be high quality
         const shouldAlert = hasOrganicVolume && isHighQuality && liquidity >= 50000;
 
-        // Store in database
+        // Store in database (including market cap)
         await supabase.from("tokens").upsert(
           {
             mint: boost.tokenAddress,
@@ -119,6 +119,10 @@ module.exports = async (req, res) => {
             fake_volume: scored.isFakeVolume,
             deployer_rugs: 0,
             detected_at: new Date().toISOString(),
+            // Add missing market data
+            market_cap: marketCap || 0,
+            fdv: fdv || 0,
+            price_usd: pair.priceUsd ? Number(pair.priceUsd) : 0,
           },
           { onConflict: "mint" }
         );

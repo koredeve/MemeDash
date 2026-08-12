@@ -39,6 +39,22 @@ module.exports = async (req, res) => {
     const score = Math.round(token.score || 0);
     const status = token.status || "unknown";
 
+    // Format market cap
+    const marketCap = Number(token.market_cap || 0);
+    const fdv = Number(token.fdv || 0);
+    const mcapDisplay =
+      marketCap > 0
+        ? marketCap > 1000000
+          ? `$${(marketCap / 1000000).toFixed(1)}M`
+          : `$${(marketCap / 1000).toFixed(1)}k`
+        : "N/A";
+    const fdvDisplay =
+      fdv > 0
+        ? fdv > 1000000
+          ? `$${(fdv / 1000000).toFixed(1)}M`
+          : `$${(fdv / 1000).toFixed(1)}k`
+        : "N/A";
+
     // Determine quality indicators
     const liquidityStatus =
       token.liquidity > 100000
@@ -90,6 +106,10 @@ module.exports = async (req, res) => {
 
 📈 Volume (24h):
    → $${Math.round(token.volume || 0).toLocaleString()}
+
+🎯 Market Cap: *${mcapDisplay}*
+
+💎 FDV: ${fdvDisplay}
 
 📊 Volume Quality: ${volumeStatus}
 
