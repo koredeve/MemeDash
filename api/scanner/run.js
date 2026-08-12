@@ -161,12 +161,12 @@ module.exports = async (req, res) => {
         const isNewToken = !existingToken;
 
         // Alert logic:
-        // 1. Alert on NEW high-quality tokens
-        // 2. Alert on STATUS CHANGES (especially to AVOID = rug detection!)
-        // 3. Alert on RUGGED tokens (warn user to avoid)
+        // 1. Alert on NEW tokens that pass quality score
+        // 2. Alert on STATUS CHANGES (improvement to CLEAN or detection of RUG)
+        // The score itself already accounts for liquidity, so no additional threshold needed
         const shouldAlert =
-          isNewToken && hasOrganicVolume && isHighQuality && liquidity >= 50000 ||
-          (statusChanged && (scored.classification === 'clean' || isRugged)); // Alert on improvement OR rug detection!
+          (isNewToken && hasOrganicVolume && isHighQuality) ||  // New token that passed scoring
+          (statusChanged && (scored.classification === 'clean' || isRugged)); // Status improved or rugged detected
 
         // Store in database (including market cap)
         await supabase.from("tokens").upsert(
