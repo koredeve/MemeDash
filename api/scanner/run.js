@@ -56,6 +56,8 @@ module.exports = async (req, res) => {
         const baseToken = pair.baseToken || {};
         const liquidity = Number(pair.liquidity?.usd || 0);
         const volume = Number(pair.volume?.h24 || 0);
+        const marketCap = Number(pair.marketCap?.usd || 0); // DexScreener provides this
+        const fdv = Number(pair.fdv?.usd || 0); // Fully diluted valuation
         const pairAge = pair.pairCreatedAt ? Math.round((Date.now() - pair.pairCreatedAt) / 60000) : 0;
 
         // QUALITY FILTERS - Only scan tokens with real fundamentals
@@ -131,16 +133,41 @@ module.exports = async (req, res) => {
             const emoji = scored.classification === "clean" ? "✨" : "🔔";
             const volumeStatus = scored.volumeRatio > 10 ? "⚠️ High vol ratio" : "✓ Organic";
 
+            // Format market cap
+            const mcapDisplay =
+              marketCap > 0
+                ? marketCap > 1000000
+                  ? `$${(marketCap / 1000000).toFixed(1)}M`
+                  : `$${(marketCap / 1000).toFixed(1)}k`
+                : "N/A";
+
+            const fdvDisplay =
+              fdv > 0
+                ? fdv > 1000000
+                  ? `$${(fdv / 1000000).toFixed(1)}M`
+                  : `$${(fdv / 1000).toFixed(1)}k`
+                : "N/A";
+
             const message = `${emoji} *${scored.classification.toUpperCase()}* | ${volumeStatus}
 
 💰 $${baseToken.symbol || "TOKEN"}
 📊 Score: *${scored.score}/100* (${scored.verdict})
+
+━━━━━━━━━━━━━━━━━━━━━━
+*METRICS*
+━━━━━━━━━━━━━━━━━━━━━━
 💧 Liquidity: $${(liquidity / 1000).toFixed(1)}k
 📈 Volume (24h): $${(volume / 1000).toFixed(1)}k
+🎯 Market Cap: *${mcapDisplay}*
+💎 FDV: ${fdvDisplay}
 🔄 Vol/Liq Ratio: ${scored.volumeRatio}x
 
+━━━━━━━━━━━━━━━━━━━━━━
+
 🔗 [View on DexScreener](https://dexscreener.com/solana/${boost.tokenAddress})
-📊 [Audit Details →](https://lightmeme.vercel.app/?token=${boost.tokenAddress})`;
+📊 [Send Full Audit](https://lightmeme.vercel.app/?token=${boost.tokenAddress})
+
+⏰ Age: ${pairAge}m old`;
 
             await fetch(
               `https://api.telegram.org/bot${botToken}/sendMessage`,
