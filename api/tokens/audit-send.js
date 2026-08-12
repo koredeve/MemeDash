@@ -35,13 +35,29 @@ module.exports = async (req, res) => {
       return res.status(404).json({ error: "Token not found" });
     }
 
-    const token = tokens[0];
+    let token = tokens[0];
     const score = Math.round(token.score || 0);
     const status = token.status || "unknown";
 
-    // Format market cap
-    const marketCap = Number(token.market_cap || 0);
-    const fdv = Number(token.fdv || 0);
+    // If market cap is missing (0), fetch fresh from DexScreener
+    let marketCap = Number(token.market_cap || 0);
+    let fdv = Number(token.fdv || 0);
+
+    if ((!marketCap || marketCap === 0) && tokenAddress) {
+      try {
+        const dexResponse = await fetch(
+          `https://api.dexscreener.com/token-pairs/v1/solana/${tokenAddress}`
+        );
+        const pairs = await dexResponse.json();
+        if (Array.isArray(pairs) && pairs.length > 0) {
+          const bestPair = pairs[0]; // Use first/best pair
+          marketCap = Number(bestPair.marketCap || 0);
+          fdv = Number(bestPair.fdv || 0);
+        }
+      } catch (error) {
+        console.log("Could not fetch fresh market cap from DexScreener");
+      }
+    }
     const mcapDisplay =
       marketCap > 0
         ? marketCap > 1000000
