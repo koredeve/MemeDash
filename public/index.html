@@ -554,7 +554,12 @@
       }
 
       .sidebar.active {
-        left: 0;
+        left: 0 !important;
+      }
+
+      /* DEBUG: Force sidebar visible to test if issue is CSS or structure */
+      .sidebar {
+        outline: 3px solid red !important;  /* Red border to see if sidebar exists */
       }
 
       .mobile-menu-btn {
