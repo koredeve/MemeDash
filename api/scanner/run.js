@@ -56,8 +56,10 @@ module.exports = async (req, res) => {
         const baseToken = pair.baseToken || {};
         const liquidity = Number(pair.liquidity?.usd || 0);
         const volume = Number(pair.volume?.h24 || 0);
-        const marketCap = Number(pair.marketCap?.usd || 0); // DexScreener provides this
-        const fdv = Number(pair.fdv?.usd || 0); // Fully diluted valuation
+        // DexScreener returns marketCap and fdv as plain numbers, not objects
+        const marketCap = Number(pair.marketCap || 0);
+        const fdv = Number(pair.fdv || 0);
+        const priceUsd = Number(pair.priceUsd || 0);
         const pairAge = pair.pairCreatedAt ? Math.round((Date.now() - pair.pairCreatedAt) / 60000) : 0;
 
         // QUALITY FILTERS - Only scan tokens with real fundamentals
@@ -119,10 +121,10 @@ module.exports = async (req, res) => {
             fake_volume: scored.isFakeVolume,
             deployer_rugs: 0,
             detected_at: new Date().toISOString(),
-            // Add missing market data
-            market_cap: marketCap || 0,
-            fdv: fdv || 0,
-            price_usd: pair.priceUsd ? Number(pair.priceUsd) : 0,
+            // Add market data
+            market_cap: marketCap,
+            fdv: fdv,
+            price_usd: priceUsd,
           },
           { onConflict: "mint" }
         );
