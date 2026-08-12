@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MemeDash — Real-Time Memecoin Alerts</title>
+  <style>
+    :root {
+      --bg-dark: #0a0e27;
+      --bg-surface: #1a1f3a;
+      --bg-surface-hover: #242d4a;
+      --bg-accent: #2d3f5f;
+      --text-primary: #e8eef9;
+      --text-secondary: #8b92b0;
+      --text-muted: #5a6178;
+      --border: #2d3f5f;
+      --green: #10b981;
+      --green-dark: #059669;
+      --yellow: #f59e0b;
+      --yellow-dark: #d97706;
+      --red: #ef4444;
+      --red-dark: #dc2626;
+      --blue: #3b82f6;
+      --blue-light: #60a5fa;
+      --purple: #a78bfa;
+      --cyan: #06b6d4;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1433 100%);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100vh;
+      gap: 0;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .sidebar-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+    }
+
+    .sidebar-item:hover {
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+    }
+
+    .sidebar-item.active {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue-light);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-badge.online {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+
+    .status-badge.offline {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .dot.online {
+      background: var(--green);
+    }
+
+    .dot.offline {
+      background: var(--red);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .header-title {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--blue-light), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue-light);
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-light);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-accent);
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: var(--bg-accent);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* ===== CONTENT AREA ===== */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .filters {
+      padding: 16px 32px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-dark);
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+    }
+
+    /* ===== TOKEN LIST ===== */
+    .token-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .token-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      transition: all 0.2s;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .token-item:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--blue);
+    }
+
+    .token-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .token-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .token-symbol {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      min-width: 60px;
+    }
+
+    .token-name {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .token-age {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .token-info {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 12px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-secondary);
+    }
+
+    .token-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-self: end;
+    }
+
+    .score-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .score-number {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .score-number.clean { color: var(--green); }
+    .score-number.watch { color: var(--yellow); }
+    .score-number.avoid { color: var(--red); }
+
+    .score-bar {
+      width: 40px;
+      height: 4px;
+      background: var(--bg-accent);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    .score-bar-fill.clean { background: var(--green); }
+    .score-bar-fill.watch { background: var(--yellow); }
+    .score-bar-fill.avoid { background: var(--red); }
+
+    .status-badge-item {
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge-item.clean {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-badge-item.watch {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--yellow);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-badge-item.avoid {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      gap: 16px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      opacity: 0.5;
+    }
+
+    /* ===== SCROLLBAR ===== */
+    .token-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .token-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .token-list::-webkit-scrollbar-thumb {
+      background: var(--bg-accent);
+      border-radius: 4px;
+    }
+
+    .token-list::-webkit-scrollbar-thumb:hover {
+      background: var(--border);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .token-right {
+        grid-column: 1 / -1;
+        justify-self: start;
+        gap: 8px;
+      }
+
+      .token-item {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">⚡ MemeDash</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Real-time Memecoin Alerts</div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Views</div>
+        <div class="sidebar-item active" data-view="all">📊 All Tokens</div>
+        <div class="sidebar-item" data-view="clean">✨ Clean Coins</div>
+        <div class="sidebar-item" data-view="watch">🔔 Watch Closely</div>
+        <div class="sidebar-item" data-view="avoid">⚠️ Avoid</div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Status</div>
+        <div class="status-badge online">
+          <div class="dot online"></div>
+          <span>Backend: Live</span>
+        </div>
+        <div class="status-badge online">
+          <div class="dot online"></div>
+          <span>Telegram: Ready</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Settings</div>
+        <div class="sidebar-item" onclick="testAlert()">🧪 Send Test Alert</div>
+        <div class="sidebar-item" onclick="configWebhook()">🔗 Setup Telegram</div>
+        <div class="sidebar-item" onclick="refreshData()">🔄 Refresh Now</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- HEADER -->
+      <div class="header">
+        <div class="header-top">
+          <h1 class="header-title">🚀 MemeDash</h1>
+          <div class="header-controls">
+            <span id="sync-status" style="font-size: 12px; color: var(--text-secondary);">Loading...</span>
+            <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-label">Total Tokens</div>
+            <div class="metric-value" id="total-tokens">0</div>
+            <div class="metric-sub">Scanned & scored</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">✨ Clean</div>
+            <div class="metric-value" id="clean-count" style="color: var(--green);">0</div>
+            <div class="metric-sub">Ready to audit</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">🔔 Watch Closely</div>
+            <div class="metric-value" id="watch-count" style="color: var(--yellow);">0</div>
+            <div class="metric-sub">Monitoring</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">⚠️ Avoid</div>
+            <div class="metric-value" id="avoid-count" style="color: var(--red);">0</div>
+            <div class="metric-sub">Risky signals</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Avg Score</div>
+            <div class="metric-value" id="avg-score">0</div>
+            <div class="metric-sub">/100</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all">All Tokens</button>
+        <button class="filter-btn" data-filter="clean">✨ Clean (75+)</button>
+        <button class="filter-btn" data-filter="watch">🔔 Watch (55-74)</button>
+        <button class="filter-btn" data-filter="avoid">⚠️ Avoid (&lt;55)</button>
+      </div>
+
+      <!-- TOKEN LIST -->
+      <div class="token-list" id="token-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">⏳</div>
+          <div>Loading tokens...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let currentFilter = 'all';
+    let allTokens = [];
+
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderTokens();
+      });
+    });
+
+    const sidebarItems = document.querySelectorAll('[data-view]');
+    sidebarItems.forEach(item => {
+      item.addEventListener('click', () => {
+        sidebarItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        currentFilter = item.dataset.view;
+        document.querySelectorAll('.filter-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.filter === currentFilter);
+        });
+        renderTokens();
+      });
+    });
+
+    async function loadTokens() {
+      try {
+        document.getElementById('sync-status').textContent = '⏳ Syncing...';
+        const response = await fetch('/api/tokens/feed?limit=100');
+        const data = await response.json();
+
+        if (data.success) {
+          allTokens = data.tokens || [];
+          updateMetrics(data.stats);
+          renderTokens();
+          document.getElementById('sync-status').textContent = `✓ Updated just now`;
+        }
+      } catch (error) {
+        console.error('Load error:', error);
+        document.getElementById('sync-status').textContent = '⚠️ Error loading';
+      }
+    }
+
+    function updateMetrics(stats) {
+      document.getElementById('total-tokens').textContent = stats.total || 0;
+      document.getElementById('clean-count').textContent = stats.clean || 0;
+      document.getElementById('watch-count').textContent = stats.watch || 0;
+      document.getElementById('avoid-count').textContent = stats.avoid || 0;
+      document.getElementById('avg-score').textContent = stats.averageScore || 0;
+    }
+
+    function renderTokens() {
+      const filtered = currentFilter === 'all'
+        ? allTokens
+        : allTokens.filter(t => t.status === currentFilter);
+
+      if (filtered.length === 0) {
+        document.getElementById('token-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <div>No tokens found in "${currentFilter}" category</div>
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById('token-list').innerHTML = filtered.map(token => {
+        const score = token.score || 0;
+        const status = token.status || 'neutral';
+        const statusEmoji = { clean: '✨', watch: '🔔', avoid: '⚠️', neutral: '❓' };
+        const scorePercent = Math.min(100, Math.max(0, (score / 96) * 100));
+
+        return `
+          <div class="token-item">
+            <div class="token-left">
+              <div class="token-header">
+                <div class="token-symbol">\$${token.symbol || 'TOKEN'}</div>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <div class="token-name">${token.name || 'Token'}</div>
+                  <div class="token-age">Detected: ${formatTime(token.detected_at)}</div>
+                </div>
+              </div>
+              <div class="token-info">
+                <div class="info-item">💧 Liquidity: $${formatNumber(token.liquidity)}</div>
+                <div class="info-item">📈 Volume: $${formatNumber(token.volume)}</div>
+                <div class="info-item" style="color: ${token.fomo_pressure > 70 ? 'var(--red)' : 'var(--text-secondary)'};">
+                  🔥 FOMO: ${token.fomo_pressure || 0}%
+                </div>
+              </div>
+            </div>
+            <div class="token-right">
+              <div class="score-display">
+                <div class="score-number ${status}">${score}</div>
+                <div class="score-bar">
+                  <div class="score-bar-fill ${status}" style="width: ${scorePercent}%"></div>
+                </div>
+              </div>
+              <div class="status-badge-item ${status}">
+                ${statusEmoji[status]} ${status}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return Math.round(num);
+    }
+
+    function formatTime(isoString) {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diff = now - date;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+
+      if (minutes < 1) return 'just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      return date.toLocaleDateString();
+    }
+
+    async function testAlert() {
+      try {
+        const response = await fetch('/api/telegram/test-alert');
+        const data = await response.json();
+        alert(data.success ? '✅ Test alert sent!' : '❌ ' + data.error);
+      } catch (error) {
+        alert('❌ ' + error.message);
+      }
+    }
+
+    async function configWebhook() {
+      try {
+        const response = await fetch('/api/telegram/set-webhook', { method: 'POST' });
+        const data = await response.json();
+        alert(data.success ? '✅ Webhook configured!' : '❌ ' + data.error);
+      } catch (error) {
+        alert('❌ ' + error.message);
+      }
+    }
+
+    function refreshData() {
+      loadTokens();
+    }
+
+    // Load tokens on startup
+    loadTokens();
+
+    // Refresh every 30 seconds
+    setInterval(loadTokens, 30000);
+  </script>
+</body>
+</html>
