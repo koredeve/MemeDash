@@ -81,7 +81,7 @@ module.exports = async (req, res) => {
         // Check if token already exists (to detect status changes + rugs)
         const { data: existingTokens } = await supabase
           .from("tokens")
-          .select("status, detected_at, liquidity, price_usd, volume")
+          .select("status, detected_at, liquidity, price_usd, volume, last_alerted_at")
           .eq("mint", boost.tokenAddress)
           .limit(1);
 
@@ -160,13 +160,19 @@ module.exports = async (req, res) => {
         const statusChanged = previousStatus && previousStatus !== scored.classification;
         const isNewToken = !existingToken;
 
+        // Check if enough time has passed for status change alert (1 hour cooldown)
+        const lastAlertedTime = existingToken?.last_alerted_at ? new Date(existingToken.last_alerted_at) : null;
+        const hoursSinceLastAlert = lastAlertedTime
+          ? (Date.now() - lastAlertedTime.getTime()) / (1000 * 60 * 60)
+          : Infinity;
+
         // Alert logic:
         // 1. Alert on NEW tokens that pass quality score
-        // 2. Alert on STATUS CHANGES (improvement to CLEAN or detection of RUG)
+        // 2. Alert on STATUS CHANGES (improvement to CLEAN or detection of RUG) - but only once per hour
         // The score itself already accounts for liquidity, so no additional threshold needed
         const shouldAlert =
           (isNewToken && hasOrganicVolume && isHighQuality) ||  // New token that passed scoring
-          (statusChanged && (scored.classification === 'clean' || isRugged)); // Status improved or rugged detected
+          (statusChanged && (scored.classification === 'clean' || isRugged) && hoursSinceLastAlert >= 1); // Status changed + 1hr cooldown
 
         // Store in database (including market cap)
         await supabase.from("tokens").upsert(
@@ -187,6 +193,8 @@ module.exports = async (req, res) => {
             market_cap: marketCap,
             fdv: fdv,
             price_usd: priceUsd,
+            // Track last alert time to prevent spam
+            last_alerted_at: shouldAlert ? new Date().toISOString() : existingToken?.last_alerted_at,
           },
           { onConflict: "mint" }
         );
