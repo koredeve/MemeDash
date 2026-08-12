@@ -78,18 +78,51 @@ module.exports = async (req, res) => {
 
         scanned++;
 
-        // Check if token already exists (to detect status changes)
+        // Check if token already exists (to detect status changes + rugs)
         const { data: existingTokens } = await supabase
           .from("tokens")
-          .select("status, detected_at")
+          .select("status, detected_at, liquidity, price_usd, volume")
           .eq("mint", boost.tokenAddress)
           .limit(1);
 
         const existingToken =
           existingTokens && existingTokens.length > 0 ? existingTokens[0] : null;
 
+        // DETECT RUGS IN REAL-TIME
+        let isRugged = false;
+        if (existingToken) {
+          // Check 1: Liquidity dropped >60% = likely rug pull
+          const previousLiquidity = existingToken.liquidity || 0;
+          const liquidityDropPercent = previousLiquidity > 0
+            ? ((previousLiquidity - liquidity) / previousLiquidity) * 100
+            : 0;
+
+          if (liquidityDropPercent > 60 && previousLiquidity > 50000) {
+            isRugged = true;
+            console.log(`[RUG DETECTED] ${baseToken.symbol}: Liquidity dropped ${liquidityDropPercent.toFixed(1)}%`);
+          }
+
+          // Check 2: Price crashed >80% = dump
+          const previousPrice = existingToken.price_usd || 0;
+          const priceDropPercent = previousPrice > 0
+            ? ((previousPrice - priceUsd) / previousPrice) * 100
+            : 0;
+
+          if (priceDropPercent > 80 && previousPrice > 0) {
+            isRugged = true;
+            console.log(`[RUG DETECTED] ${baseToken.symbol}: Price dropped ${priceDropPercent.toFixed(1)}%`);
+          }
+
+          // Check 3: Volume dead (was high, now near zero) = abandoned
+          const previousVolume = existingToken.volume || 0;
+          if (previousVolume > 100000 && volume < 10000) {
+            isRugged = true;
+            console.log(`[RUG DETECTED] ${baseToken.symbol}: Volume collapsed (${previousVolume} → ${volume})`);
+          }
+        }
+
         // Score the token
-        const scored = scoreToken({
+        let scored = scoreToken({
           liquidity,
           volume,
           fees: volume * 0.0025,
@@ -97,7 +130,7 @@ module.exports = async (req, res) => {
           topTen: Math.random() * 40 + 12,
           smartHits: boost.amount ? 1 : 0,
           deployerAge: 7,
-          deployerRugs: 0,
+          deployerRugs: isRugged ? 3 : 0,  // Heavy penalty if rugged
           mintRevoked: true,
           freezeRevoked: true,
           fakeVolume:
@@ -107,6 +140,13 @@ module.exports = async (req, res) => {
           buysM5: Number(pair.txns?.m5?.buys || 0),
           sellsM5: Number(pair.txns?.m5?.sells || 0),
         });
+
+        // OVERRIDE: If rugged, force to AVOID status
+        if (isRugged) {
+          scored.classification = 'avoid';
+          scored.score = 10;
+          scored.verdict = 'Rugged - Liquidity/Price Crash';
+        }
 
         // IMPORTANT: Smart alert filtering
         // Only alert on REAL keeper tokens with organic volume
@@ -120,12 +160,13 @@ module.exports = async (req, res) => {
         const statusChanged = previousStatus && previousStatus !== scored.classification;
         const isNewToken = !existingToken;
 
-        // Only alert if: (1) NEW token, or (2) STATUS CHANGED
+        // Alert logic:
+        // 1. Alert on NEW high-quality tokens
+        // 2. Alert on STATUS CHANGES (especially to AVOID = rug detection!)
+        // 3. Alert on RUGGED tokens (warn user to avoid)
         const shouldAlert =
-          hasOrganicVolume &&
-          isHighQuality &&
-          liquidity >= 50000 &&
-          (isNewToken || statusChanged); // ONLY on new or status change!
+          isNewToken && hasOrganicVolume && isHighQuality && liquidity >= 50000 ||
+          (statusChanged && (scored.classification === 'clean' || isRugged)); // Alert on improvement OR rug detection!
 
         // Store in database (including market cap)
         await supabase.from("tokens").upsert(
@@ -157,7 +198,11 @@ module.exports = async (req, res) => {
           const chatId = 5824497779;
 
           if (botToken) {
-            const emoji = scored.classification === "clean" ? "✨" : "🔔";
+            // Choose emoji based on token status
+            let emoji = "🔔";
+            if (scored.classification === "clean") emoji = "✨";
+            if (scored.classification === "avoid") emoji = isRugged ? "🚨" : "⚠️";
+
             const volumeStatus = scored.volumeRatio > 10 ? "⚠️ High vol ratio" : "✓ Organic";
 
             // Format market cap
@@ -175,7 +220,34 @@ module.exports = async (req, res) => {
                   : `$${(fdv / 1000).toFixed(1)}k`
                 : "N/A";
 
-            const message = `${emoji} *${scored.classification.toUpperCase()}* | ${volumeStatus}
+            // Different message format for rugged tokens
+            let message;
+            if (isRugged) {
+              message = `${emoji} *RUG DETECTED!* - AVOID
+
+💰 $${baseToken.symbol || "TOKEN"}
+🚨 Status: *${scored.verdict}*
+
+━━━━━━━━━━━━━━━━━━━━━━
+*WHAT HAPPENED*
+━━━━━━━━━━━━━━━━━━━━━━
+❌ Liquidity crashed or pulled
+❌ Price dumped significantly
+❌ Trading volume stopped
+❌ Token is likely abandoned
+
+━━━━━━━━━━━━━━━━━━━━━━
+*CURRENT METRICS*
+━━━━━━━━━━━━━━━━━━━━━━
+💧 Liquidity: $${(liquidity / 1000).toFixed(1)}k (DOWN)
+📈 Volume: $${(volume / 1000).toFixed(1)}k (DEAD)
+💎 Score: *${scored.score}/100*
+
+⚠️ DO NOT BUY - AVOID THIS TOKEN
+
+🔗 [View on DexScreener](https://dexscreener.com/solana/${boost.tokenAddress})`;
+            } else {
+              message = `${emoji} *${scored.classification.toUpperCase()}* | ${volumeStatus}
 
 💰 $${baseToken.symbol || "TOKEN"}
 📊 Score: *${scored.score}/100* (${scored.verdict})
@@ -195,6 +267,7 @@ module.exports = async (req, res) => {
 📊 [Send Full Audit](https://lightmeme.vercel.app/?token=${boost.tokenAddress})
 
 ⏰ Age: ${pairAge}m old`;
+            }
 
             await fetch(
               `https://api.telegram.org/bot${botToken}/sendMessage`,
