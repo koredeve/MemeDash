@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
     // Check status of all watched tokens
     const { data: tokens, error: tokenError } = await supabase
       .from("tokens")
-      .select("mint, symbol, score, status, liquidity, volume, market_cap, fomo_pressure")
+      .select("mint, symbol, score, status, liquidity, volume, market_cap, fomo_pressure, last_graduation_alert")
       .in("mint", watchedMints);
 
     if (tokenError) {
@@ -45,6 +45,19 @@ module.exports = async (req, res) => {
     // Check each token for graduation (Watch → Clean)
     for (const token of tokens || []) {
       if (token.status === "clean") {
+        // Check if we already alerted about this graduation (24 hour cooldown)
+        const lastAlertTime = token.last_graduation_alert
+          ? new Date(token.last_graduation_alert)
+          : null;
+        const hoursSinceLastAlert = lastAlertTime
+          ? (Date.now() - lastAlertTime.getTime()) / (1000 * 60 * 60)
+          : Infinity;
+
+        // Only send alert if 24+ hours have passed since last graduation alert
+        if (hoursSinceLastAlert < 24) {
+          continue; // Skip this token, already alerted recently
+        }
+
         graduatedCount++;
 
         // Send graduation alert
@@ -99,6 +112,12 @@ Congratulations! 🚀`;
               }),
             }
           );
+
+          // Update token to track when graduation alert was sent
+          await supabase
+            .from("tokens")
+            .update({ last_graduation_alert: new Date().toISOString() })
+            .eq("mint", token.mint);
         }
       }
     }
