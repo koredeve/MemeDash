@@ -500,6 +500,71 @@
       background: var(--border);
     }
 
+    /* ===== MODAL CARDS ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--bg-accent);
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-primary);
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: var(--blue);
+      color: white;
+    }
+
+    .modal-card h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .modal-card p {
+      margin: 8px 0;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1024px) {
       .app-container {
@@ -538,28 +603,25 @@
       }
 
       .sidebar {
-        display: flex;  /* FIX: Override tablet's display: none */
+        display: flex;
         flex-direction: column;
         position: fixed;
         left: -280px;
         top: 0;
-        height: 100%;
+        height: 100vh;
         width: 280px;
-        z-index: 999;
+        z-index: 998;
         transition: left 0.3s ease;
         border-right: 1px solid var(--border);
         box-shadow: 2px 0 8px rgba(0,0,0,0.3);
         overflow-y: auto;
-        padding-top: 60px;
+        padding: 60px 20px 20px 20px;
+        background: var(--bg-surface);
+        gap: 0;
       }
 
       .sidebar.active {
-        left: 0 !important;
-      }
-
-      /* DEBUG: Force sidebar visible to test if issue is CSS or structure */
-      .sidebar {
-        outline: 3px solid red !important;  /* Red border to see if sidebar exists */
+        left: 0;
       }
 
       .mobile-menu-btn {
@@ -768,7 +830,6 @@
         <div class="sidebar-item" onclick="testAlert()">🧪 Send Test Alert</div>
         <div class="sidebar-item" onclick="configWebhook()">🔗 Setup Telegram</div>
         <div class="sidebar-item" onclick="refreshData()">🔄 Refresh Now</div>
-        <div class="sidebar-item" onclick="loadDemoData()" style="background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5);">📊 Load Demo Data</div>
       </div>
 
       <div class="sidebar-section" style="margin-top: auto;">
@@ -842,6 +903,34 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- MODALS -->
+  <div id="helpModal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal('helpModal')">✕</button>
+      <h2>📚 How MemeDash Works</h2>
+      <p><strong>1. SCANNER</strong> - Finds new tokens every 5 minutes</p>
+      <p><strong>2. QUALITY CHECK</strong> - Scores 0-100 using audit logic</p>
+      <p><strong>3. FAKE VOLUME</strong> - Filters out farmed tokens</p>
+      <p><strong>4. ALERTS</strong> - Sends Telegram on new tokens or upgrades</p>
+      <p><strong>5. TRACKING</strong> - Monitor Watch tokens → get alert when Clean</p>
+      <p><strong>6. DASHBOARD</strong> - See live tokens, click to verify on DexScreener</p>
+      <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
+      <p><strong>Score Ranges:</strong></p>
+      <p>✨ 75+ = CLEAN (safe to buy)</p>
+      <p>🔔 55-74 = WATCH (monitor closely)</p>
+      <p>⚠️ &lt;55 = AVOID (risky)</p>
+      <p style="margin-top: 16px; color: var(--yellow);">Always verify on-chain before trading!</p>
+    </div>
+  </div>
+
+  <div id="statusModal" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeModal('statusModal')">✕</button>
+      <h2>📊 System Status</h2>
+      <p><strong id="statusContent">Loading status...</strong></p>
+    </div>
   </div>
 
   <script>
@@ -1126,42 +1215,35 @@ Click "Run Audit" to send detailed report to Telegram with:
       item.addEventListener('click', closeMobileMenu);
     });
 
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.add('active');
+      }
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    }
+
+    // Close modal when clicking outside
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+        }
+      });
+    });
+
     function showHelp() {
-      alert(`📚 MemeDash - How It Works:
-
-1. SCANNER: Finds new tokens every 5 minutes
-2. QUALITY CHECK: Scores 0-100 using audit logic
-3. FAKE VOLUME: Filters out farmed tokens
-4. ALERTS: Sends Telegram on new tokens or upgrades
-5. TRACKING: Monitor Watch tokens → get alert when Clean
-6. DASHBOARD: See live tokens, click to verify on DexScreener
-
-Score Ranges:
-✨ 75+ = CLEAN (safe to buy)
-🔔 55-74 = WATCH (monitor closely)
-⚠️ <55 = AVOID (risky)
-
-Always verify on-chain before trading!`);
+      openModal('helpModal');
     }
 
     function showStatus() {
-      const statusText = `📊 System Status:
-
-✅ Scanner: Running (every 5 min)
-✅ Database: Connected
-✅ Telegram: Ready
-✅ Dashboard: Live
-✅ Mobile: Optimized
-
-Features Active:
-• Real-time scanning
-• Fake volume detection
-• Watch token tracking
-• Graduation alerts
-• Market cap display
-
-Everything is working! 🚀`;
-      alert(statusText);
+      openModal('statusModal');
     }
 
     async function loadDemoData() {
