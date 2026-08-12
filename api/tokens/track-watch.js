@@ -40,12 +40,14 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Add to watchlist
+    // Add to watchlist (using default user UUID)
+    const defaultUserId = "550e8400-e29b-41d4-a716-446655440000"; // Static UUID for default user
+
     const { data: watchlistData, error: watchError } = await supabase
       .from("watchlist")
       .upsert(
         {
-          user_id: "default-user", // Using default for now
+          user_id: defaultUserId,
           token_mint: tokenAddress,
           added_at: new Date().toISOString(),
           source: "dashboard",
