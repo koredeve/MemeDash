@@ -1,419 +1,264 @@
 # MemeDash - Real-Time Memecoin Alert System
 
-**Status:** ✅ Phase 1 Backend Complete - Production Ready
+**Status:** ✅ **LIVE & PRODUCTION READY** - [View Dashboard](https://lightmeme.vercel.app)
 
-A real-time memecoin alert system combining a Telegram bot, web dashboard, and serverless backend. Detect new token launches, set custom alert rules, and receive instant notifications.
-
-## 🚀 Quick Links
-
-**New to the project?** Start here:
-- 📖 **[QUICKSTART.md](QUICKSTART.md)** - 5 min overview of what's been built
-- 🏗️ **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and data flows
-- 🚀 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Deploy to production (step-by-step)
-
-**Looking for specific information?**
-- 📚 **[API_REFERENCE.md](API_REFERENCE.md)** - Every endpoint with curl examples
-- ✅ **[PHASE1_COMPLETED.md](PHASE1_COMPLETED.md)** - What's been built
-- 📊 **[SESSION_REPORT.md](SESSION_REPORT.md)** - Detailed work summary
+Real-time memecoin alerts with a **web dashboard**, **Telegram bot**, and **automated scanner**. Detect new tokens, score quality (0-100), set custom alerts, and track promising tokens to "graduation."
 
 ---
 
-## What This Is
+## 🚀 Quick Start
 
-A **production-ready backend** for real-time memecoin alerts:
+### For Users
+1. **Open Dashboard:** https://lightmeme.vercel.app
+2. **Connect Telegram:** Send `/start` to [@lightmeme_bot](https://t.me/lightmeme_bot)
+3. **Watch Tokens:** Click "📌 Track" on WATCH tokens
+4. **Get Alerts:** Receive Telegram notifications on NEW tokens & graduations
 
-```
-Scanner (existing local)
-    ↓
-Backend (Vercel Functions) ← You are here ✅
-    ↓ ↙ ↘
-Telegram  Dashboard  Database
-(alerts)  (UI)      (Supabase)
-```
-
-**12 API endpoints** handle:
-- Token detection and scoring
-- User watchlist management  
-- Customizable alert rules
-- Telegram bot commands
-- Dashboard data and analytics
+### For Developers
+1. **Read:** [USER_GUIDE.md](USER_GUIDE.md) - How to use MemeDash
+2. **Review:** `/api` endpoints in this repo
+3. **Deploy:** Fork to your Vercel account
+4. **Customize:** Modify `api/scanner/run.js` for your rules
 
 ---
 
-## 📂 Project Structure
+## ✨ Features
 
+### 📊 Dashboard
+- **Live Token Feed** - Real-time token detection & scoring
+- **Filter by Status** - CLEAN (75+), WATCH (55-74), AVOID (<55)
+- **Track Tokens** - Monitor WATCH tokens for graduation to CLEAN
+- **Mobile Menu** - Hamburger navigation on mobile
+- **System Status** - Real scanner health & metrics
+
+### 🤖 Telegram Bot (@lightmeme_bot)
 ```
-memedash/
-├── 📖 Documentation (READ THESE)
-│   ├── README.md ........................ This file
-│   ├── QUICKSTART.md ................... 5-min overview (START HERE)
-│   ├── ARCHITECTURE.md ................. System design
-│   ├── DEPLOYMENT.md ................... Deploy to Vercel
-│   ├── API_REFERENCE.md ............... Every endpoint documented
-│   ├── PHASE1_COMPLETED.md ............ Work completed
-│   └── SESSION_REPORT.md .............. Technical details
-│
-├── ⚙️ Configuration (SETUP THESE)
-│   ├── package.json ................... Dependencies
-│   ├── vercel.json .................... Vercel config
-│   ├── supabase-schema.sql ............ Database schema
-│   └── .env.local (create locally) .... Environment variables
-│
-├── 📦 Utilities (REFERENCE THESE)
-│   └── lib/
-│       ├── supabase.js ................ Database client
-│       └── scanner-poller.js .......... Alert engine
-│
-└── 🔌 API Endpoints (DEPLOY THESE)
-    └── api/
-        ├── scanner/ ................... Token detection
-        ├── watchlist/ ................. User watchlist
-        ├── rules/ ..................... Alert configuration
-        ├── alerts/ .................... Alert history
-        ├── telegram/ .................. Bot integration
-        └── dashboard/ ................. Analytics
+/start            → Connect your account
+/watchlist        → See your tracked tokens
+/track <address>  → Track a wallet
+/history          → Recent alerts
+/pause / /resume  → Control alerts
 ```
 
----
+### 🔔 Alerts
+- **NEW Token Alert** - Instantly when quality token detected
+- **Graduation Alert** - When WATCH token → CLEAN
+- **Smart Wallet Alert** - When tracked wallet buys
+- **Status Changes** - When token classification changes
 
-## 🎯 Getting Started in 3 Steps
-
-### 1️⃣ Understand the System (5 min)
-Read [QUICKSTART.md](QUICKSTART.md) for a quick overview.
-
-### 2️⃣ Deploy to Production (30 min)
-Follow [DEPLOYMENT.md](DEPLOYMENT.md) step-by-step.
-
-### 3️⃣ Test It Works (10 min)
-- Open Telegram and send `/start` to your bot
-- Try commands like `/add SOL` and `/watchlist`
-- Done! You have real-time alerts
+### 📈 Token Scoring
+**0-100 Scale:**
+- **75+** ✨ CLEAN - Safe entry point
+- **55-74** 🔔 WATCH - Monitor for improvement
+- **<55** ⚠️ AVOID - High risk
+- **Factors:** Liquidity, volume, holder distribution, deployer history, fake volume detection
 
 ---
 
-## 📖 Documentation Guide
+## 🏗️ System Architecture
 
-| Document | Time | For Whom | What You'll Learn |
-|----------|------|---------|------------------|
-| **QUICKSTART.md** | 5 min | Everyone | Overview of what's built |
-| **ARCHITECTURE.md** | 15 min | Developers | System design and flows |
-| **API_REFERENCE.md** | 20 min | Developers | Every endpoint with examples |
-| **DEPLOYMENT.md** | 30 min | DevOps | Deploy to Vercel step-by-step |
-| **PHASE1_COMPLETED.md** | 10 min | Managers | What's been delivered |
-| **SESSION_REPORT.md** | 15 min | Technical | Code metrics and details |
+```
+┌──────────────────────────────────────────┐
+│        MemeDash Dashboard                │
+│  https://lightmeme.vercel.app            │
+└────────────────┬─────────────────────────┘
+                 │
+     ┌───────────┼───────────┐
+     ↓           ↓           ↓
+ Scanner    Database    Telegram
+ (Pump.fun) (Supabase)  (Bot API)
+```
+
+**Key Components:**
+- **Scanner** - Detects new tokens every 5 minutes from pump.fun
+- **Scorer** - Grades tokens 0-100 (liquidity, volume, holders, fake volume)
+- **Database** - Tracks all tokens, watchlists, alerts (PostgreSQL)
+- **Telegram** - Sends alerts and handles `/commands`
+- **Dashboard** - Web UI at https://lightmeme.vercel.app
 
 ---
 
-## 🛠 What's Included
+## 📚 Documentation
 
-### 12 API Endpoints
+| Document | Purpose |
+|----------|---------|
+| **[USER_GUIDE.md](USER_GUIDE.md)** | How to use MemeDash (dashboard, bot, alerts) |
+| **README.md** | This file - system overview |
+| **[CRITICAL_FIX_REQUIRED.md](CRITICAL_FIX_REQUIRED.md)** | Database schema fixes (if needed) |
 
-**Scanner Integration (2)**
-- `GET /api/scanner/latest` - Get latest tokens
+---
+
+## 🔧 API Endpoints (12 Total)
+
+### Scanner
+- `GET /api/scanner/run` - Trigger manual scan
 - `GET /api/scanner/status` - Scanner health
 
-**Watchlist (3)**
-- `POST /api/watchlist/add` - Add token
-- `DELETE /api/watchlist/remove` - Remove token  
-- `GET /api/watchlist` - Get all watched tokens
+### Tokens
+- `GET /api/tokens/feed?limit=50` - Token list (filtered/paginated)
+- `POST /api/tokens/score` - Score a token
+- `POST /api/tokens/audit-send` - Send full audit to Telegram
+- `POST /api/tokens/track-watch` - Track a WATCH token
 
-**Alert Rules (1 endpoint, 3 methods)**
-- `POST /api/rules` - Create rule
-- `GET /api/rules` - View rules
-- `PUT /api/rules` - Update rule
+### Watchlist
+- `POST /api/tokens/check-graduation` - Check if WATCH → CLEAN
 
-**Alerts (1)**
-- `GET /api/alerts/history` - Alert history
+### Smart Wallets
+- `POST /api/wallets/track` - Track a wallet
+- `GET /api/wallets/list` - List tracked wallets
 
-**Telegram (2)**
-- `POST /api/telegram/webhook` - Receive bot commands
-- `POST /api/telegram/send` - Send alerts
+### Telegram
+- `POST /api/telegram/webhook` - Handle bot commands
+- `POST /api/telegram/set-webhook` - Configure webhook
 
-**Dashboard (3)**
-- `GET /api/dashboard/status` - Overview
-- `GET /api/dashboard/tokens` - Latest tokens
-- `GET /api/dashboard/stats` - Analytics
+---
 
-### Telegram Bot Commands
+## 🛠️ Technology Stack
 
-```
-/start           → Welcome
-/add <symbol>    → Add to watchlist
-/remove <symbol> → Remove from watchlist
-/watchlist       → Show watched tokens
-/rules           → View alert settings
-/setrule <s> <v> → Update setting
-/history         → Recent alerts
-/pause / /resume → Control alerts
-```
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| **Frontend** | HTML/CSS/JS | Single-page dashboard, mobile-friendly |
+| **Backend** | Vercel Functions (Node.js 24) | Serverless, auto-scale, no DevOps |
+| **Database** | Supabase PostgreSQL | Secure, built-in Row-Level Security |
+| **Alerts** | Telegram Bot API | Real-time, no app needed |
+| **Scanning** | EasyCron + pump.fun API | Automated job scheduler |
 
-### Database Schema
+---
 
-6 PostgreSQL tables with Row-Level Security:
-- `users` - Telegram profiles
-- `tokens` - Token cache
-- `watchlist` - User watchlists
-- `alert_rules` - Alert configuration
-- `alert_history` - Alert audit trail
-- `scanner_status` - Scanner health
+## 📊 Database Schema
+
+**6 Tables:**
+- `users` - Telegram profiles & settings
+- `tokens` - Token cache (mint, symbol, score, status, metrics)
+- `watchlist` - Tracked tokens (for graduation monitoring)
+- `tracked_wallets` - Smart wallets being monitored
+- `alert_rules` - User alert preferences
+- `scanner_status` - Health metrics
 
 ---
 
 ## 🔐 Security
 
 - ✅ **No hardcoded secrets** - Environment variables only
-- ✅ **User data isolated** - RLS protects data
-- ✅ **Secure credentials** - Service role key on backend only
-- ✅ **Input validation** - All parameters checked
-- ✅ **HTTPS only** - Vercel enforces TLS
+- ✅ **HTTPS enforced** - Vercel automatic TLS
+- ✅ **Data isolation** - Row-Level Security (RLS) on all tables
+- ✅ **Input validation** - All API parameters checked
+- ✅ **Rate limiting** - Telegram & API rate limits respected
 
 ---
 
-## 🚀 Deployment Stack
+## 🚀 Deployment
 
-| Component | Service | Why |
-|-----------|---------|-----|
-| Backend | Vercel Functions | Auto-scaling, no ops |
-| Database | Supabase PostgreSQL | Secure, built-in RLS |
-| Alerts | Telegram Bot API | Real-time, no app needed |
-| Auth | User ID + RLS | Simple, secure |
+**Currently Deployed:**
+- Frontend: https://lightmeme.vercel.app
+- Backend: Vercel Functions (12 endpoints)
+- Database: Supabase (PostgreSQL)
+- Bot: @lightmeme_bot (Telegram)
 
----
-
-## 📊 Current Status
-
-| Component | Status | Details |
-|-----------|--------|---------|
-| API Endpoints | ✅ Done | 12/12 complete |
-| Database | ✅ Done | Schema ready |
-| Bot Handler | ✅ Done | 8 commands |
-| Utilities | ✅ Done | Alert engine ready |
-| Documentation | ✅ Done | 6 comprehensive guides |
-| **Overall** | ✅ **READY** | **Deploy anytime** |
+**To Deploy Your Own:**
+1. Fork this repository
+2. Connect to Vercel
+3. Set environment variables (SUPABASE_URL, TELEGRAM_BOT_TOKEN, etc.)
+4. Deploy (Vercel handles everything automatically)
 
 ---
 
-## 🎬 What Happens When
+## 📈 Performance
 
-### A new token launches
-```
-1. Scanner detects token on pump.fun
-2. Backend polls scanner every 30s
-3. If matches alert rules: Send Telegram alert
-4. User gets: Token name, score, liquidity, links
-```
-
-### User adds token to watchlist
-```
-1. User sends: /add SOL
-2. Bot finds token in recent scans
-3. Adds to database (prevents duplicates)
-4. Bot confirms: ✅ Added
-```
-
-### User opens dashboard (Future)
-```
-1. Frontend fetches /api/dashboard/tokens
-2. Shows latest tokens + user's watchlist
-3. User can add/remove via web interface
-4. Real-time polling updates every 10s
-```
-
----
-
-## ⚡ Performance
-
-- **API Response:** 20-100ms
+- **API Response:** 50-200ms
 - **Database Query:** <10ms (indexed)
-- **Alert Latency:** <1 second
-- **Scalability:** Unlimited (Vercel auto-scales)
+- **Alert Latency:** <2 seconds
+- **Scalability:** Auto-scales with Vercel
 
 ---
 
 ## 🐛 Troubleshooting
 
-**Issue:** API not responding  
-**Fix:** Check Vercel deployment, verify env vars, check logs
+**No alerts in Telegram?**
+- Verify bot token in environment variables
+- Check webhook is configured: `POST /api/telegram/set-webhook`
+- Open console (F12) for errors
 
-**Issue:** Bot not responding  
-**Fix:** Verify bot token, check webhook URL, check logs
+**Hamburger menu not working?**
+- Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)
+- Check mobile mode (DevTools or real mobile)
 
-**Issue:** No alerts sending  
-**Fix:** Verify scanner running, check alert rules, check logs
+**Same tokens appearing?**
+- This is normal! Scanner detects ~5-10 new tokens per 5 min scan
+- Look for newer `detected_at` timestamps for new detections
+- Real tokens will appear at top of list
 
-**More help:** See DEPLOYMENT.md troubleshooting section
-
----
-
-## 📋 Checklist to Deploy
-
-- [ ] Read QUICKSTART.md
-- [ ] Create Telegram bot
-- [ ] Save bot token
-- [ ] Create Supabase project
-- [ ] Run supabase-schema.sql
-- [ ] Push code to GitHub
-- [ ] Link Vercel to GitHub
-- [ ] Set environment variables
-- [ ] Deploy
-- [ ] Configure webhook
-- [ ] Test endpoints
-- [ ] Test bot commands
+**Track button not working?**
+- Only appears on WATCH status tokens (score 55-74)
+- Check if token is actually WATCH classification
 
 ---
 
-## 🔄 Architecture Overview
+## 💡 How It Works
 
+### When a New Token Launches
+1. Scanner finds it on pump.fun
+2. Scores it (0-100 using audit logic)
+3. Checks quality filters (liquidity, volume, age, transaction count)
+4. If CLEAN or high WATCH → Sends Telegram alert
+5. Stores in database for tracking
+
+### When You Track a Token
+1. Click "📌 Track" on a WATCH token
+2. Token added to watchlist in database
+3. Every 30 min: System checks if improved to CLEAN
+4. If upgraded → Telegram alert: "🎓 TOKEN GRADUATED TO CLEAN!"
+
+### Graduation Detection
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   MEMECOIN SCANNER                      │
-│           (Local Python, runs continuously)             │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     │ Polls every 30s
-                     ↓
-┌─────────────────────────────────────────────────────────┐
-│                  BACKEND (VERCEL)                       │
-│                                                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
-│  │   Scanner    │  │  Watchlist   │  │ Alert Rules  │   │
-│  │  Endpoints   │  │  Endpoints   │  │  Endpoints   │   │
-│  └──────────────┘  └──────────────┘  └──────────────┘   │
-│                                                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
-│  │   Telegram   │  │   Dashboard  │  │   Alerts     │   │
-│  │  Endpoints   │  │  Endpoints   │  │  Endpoints   │   │
-│  └──────────────┘  └──────────────┘  └──────────────┘   │
-└────┬─────────────────────────────────────────┬──────────┘
-     │                                          │
-     ↓                                          ↓
-┌──────────────────┐                   ┌──────────────────┐
-│ SUPABASE (DB)    │                   │  TELEGRAM BOT    │
-│  - tokens        │                   │  - Commands      │
-│  - watchlist     │                   │  - Alerts        │
-│  - rules         │                   │  - Settings      │
-│  - alerts        │                   └──────────────────┘
-│  - users         │
-└──────────────────┘
-     ↑
-     │ (Future)
-     │
-┌──────────────────┐
-│   DASHBOARD      │
-│   (React)        │
-│  - Real-time     │
-│  - Watchlist UI  │
-│  - Alert rules   │
-└──────────────────┘
+WATCH Token        Graduates        CLEAN Token
+(Score 55-74)  →  After Hours   →  (Score 75+)
+                   of Activity
+                   
+                    Alert! 
+                   "Ready to buy"
 ```
 
 ---
 
-## 🎓 Learning Resources
+## 🎯 Roadmap
 
-### Code Examples
-- **cURL:** See API_REFERENCE.md
-- **JavaScript/Fetch:** See API_REFERENCE.md
-- **Full endpoints:** See api/ directory
+**Completed (Phase 1-2):**
+- ✅ Token detection & scoring
+- ✅ Web dashboard
+- ✅ Telegram bot & alerts
+- ✅ Watchlist & graduation tracking
+- ✅ Mobile responsive UI
+- ✅ Smart wallet monitoring
 
-### Understanding the System
-1. Start: QUICKSTART.md
-2. Deep dive: ARCHITECTURE.md
-3. See code: api/ directory
-4. Deploy: DEPLOYMENT.md
-
----
-
-## 🚦 Next Phase
-
-### Phase 2: Deployment & Telegram Integration
-- Deploy backend to Vercel
-- Configure Telegram webhook
-- Implement scanner polling job
-- Build alert evaluation engine
-- End result: Working bot sending real alerts
-
-**Blocked on:** User creating Telegram bot token
-
-### Phase 3: Dashboard Frontend
-- Connect React frontend to API
-- Real-time data updates
-- Watchlist management UI
-- Alert configuration UI
-
-### Phase 4: Refinement
-- Performance optimization
-- Advanced analytics
-- User experience improvements
-- Additional features
-
----
-
-## 💡 Tips
-
-1. **Start with QUICKSTART.md** - Quick overview
-2. **Use API_REFERENCE.md** for testing - Has curl examples
-3. **Check DEPLOYMENT.md** before deploying - Step-by-step guide
-4. **Review ARCHITECTURE.md** to understand design - System flows included
-5. **Check logs with `vercel logs`** if issues - Most problems visible there
+**Future (Phase 3+):**
+- 📱 Mobile app
+- 💹 Advanced analytics
+- 🔮 Predictive scoring
+- 💰 Portfolio tracking
+- 🎓 Educational content
 
 ---
 
 ## 📞 Support
 
-All questions answered by documentation:
-- **How do I deploy?** → DEPLOYMENT.md
-- **What APIs are available?** → API_REFERENCE.md
-- **How does it work?** → ARCHITECTURE.md + QUICKSTART.md
-- **What's been built?** → PHASE1_COMPLETED.md
-- **Technical details?** → SESSION_REPORT.md
+**Issues?** Check:
+1. Console (F12) for error messages
+2. [USER_GUIDE.md](USER_GUIDE.md) FAQ section
+3. Telegram bot `/help` command
+
+**Found a bug?** Open an issue or contact the developer.
 
 ---
 
-## 📝 Files Summary
+## 📄 License
 
-| File | Purpose | Read Time |
-|------|---------|-----------|
-| README.md | This file - overview | 5 min |
-| QUICKSTART.md | Getting started | 5 min |
-| ARCHITECTURE.md | System design | 15 min |
-| DEPLOYMENT.md | Deploy to production | 30 min |
-| API_REFERENCE.md | API documentation | 20 min |
-| PHASE1_COMPLETED.md | What's been built | 10 min |
-| SESSION_REPORT.md | Technical summary | 15 min |
+Built with ❤️ for memecoin traders.
 
-**Total reading:** ~90 minutes for full understanding
+**Developer:** @lightmeme_bot  
+**Date:** 2026-08-12  
+**Status:** Production Live  
 
 ---
 
-## 🎉 Ready?
-
-1. **Just want overview?** → Read QUICKSTART.md
-2. **Ready to deploy?** → Follow DEPLOYMENT.md
-3. **Building on this?** → Review ARCHITECTURE.md first
-4. **Need API docs?** → Reference API_REFERENCE.md
-
----
-
-## 📄 License & Attribution
-
-Built as Phase 1 of MemeDash - Real-Time Memecoin Alert System.
-
-**User:** innovation@ajared.ca  
-**Date:** 2026-08-11  
-**Status:** Production Ready  
-**Next Phase:** Telegram Integration & Deployment
-
----
-
-**Questions?** Check the docs. All answers are documented.
-
-**Ready to deploy?** Follow [DEPLOYMENT.md](DEPLOYMENT.md) step-by-step.
-
-**Want to understand?** Start with [ARCHITECTURE.md](ARCHITECTURE.md).
-
-**Just getting started?** Read [QUICKSTART.md](QUICKSTART.md) first.
-
----
-
-**Phase 1 Backend Foundation: ✅ COMPLETE**
+**Ready to trade?** Open https://lightmeme.vercel.app and start tracking tokens! 🚀
