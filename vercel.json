@@ -4,5 +4,15 @@
       "memory": 512,
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/scanner",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/graduation-check",
+      "schedule": "*/30 * * * *"
+    }
+  ]
 }
