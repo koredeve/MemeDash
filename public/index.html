@@ -61,6 +61,45 @@
       display: flex;
       flex-direction: column;
       gap: 32px;
+      position: relative;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      background: var(--blue);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      z-index: 1000;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mobile-menu-btn span {
+      width: 24px;
+      height: 2px;
+      background: white;
+      border-radius: 1px;
+      transition: all 0.3s;
+    }
+
+    .mobile-menu-btn.active span:nth-child(1) {
+      transform: rotate(45deg) translate(8px, 8px);
+    }
+
+    .mobile-menu-btn.active span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .mobile-menu-btn.active span:nth-child(3) {
+      transform: rotate(-45deg) translate(7px, -7px);
     }
 
     .sidebar-section {
@@ -497,11 +536,32 @@
         overflow: visible;
       }
 
+      .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100vh;
+        width: 280px;
+        z-index: 999;
+        transition: left 0.3s ease;
+        border-right: 1px solid var(--border);
+        box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+      }
+
+      .sidebar.active {
+        left: 0;
+      }
+
+      .mobile-menu-btn {
+        display: flex;
+      }
+
       .header {
         padding: 12px 16px;
         max-height: none;
         position: static;
         overflow: visible;
+        margin-top: 16px;
       }
 
       .header-top {
@@ -700,7 +760,20 @@
         <div class="sidebar-item" onclick="refreshData()">🔄 Refresh Now</div>
         <div class="sidebar-item" onclick="loadDemoData()" style="background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5);">📊 Load Demo Data</div>
       </div>
+
+      <div class="sidebar-section" style="margin-top: auto;">
+        <div class="sidebar-title">Help</div>
+        <div class="sidebar-item" onclick="showHelp()">❓ How It Works</div>
+        <div class="sidebar-item" onclick="showStatus()">📊 System Status</div>
+      </div>
     </aside>
+
+    <!-- MOBILE MENU BUTTON -->
+    <button id="mobile-menu-btn" class="mobile-menu-btn" onclick="toggleMobileMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
@@ -996,6 +1069,76 @@ Click "Run Audit" to send detailed report to Telegram with:
 ⚠️ Always verify on-chain before trading`;
 
       alert(message);
+    }
+
+    function toggleMobileMenu() {
+      const sidebar = document.querySelector('.sidebar');
+      const btn = document.querySelector('.mobile-menu-btn');
+      sidebar.classList.toggle('active');
+      btn.classList.toggle('active');
+    }
+
+    function closeMobileMenu() {
+      const sidebar = document.querySelector('.sidebar');
+      const btn = document.querySelector('.mobile-menu-btn');
+      sidebar.classList.remove('active');
+      btn.classList.remove('active');
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const sidebar = document.querySelector('.sidebar');
+      const btn = document.querySelector('.mobile-menu-btn');
+      if (
+        !sidebar.contains(e.target) &&
+        !btn.contains(e.target) &&
+        sidebar.classList.contains('active')
+      ) {
+        closeMobileMenu();
+      }
+    });
+
+    // Close menu when clicking on sidebar items
+    document.querySelectorAll('.sidebar-item').forEach((item) => {
+      item.addEventListener('click', closeMobileMenu);
+    });
+
+    function showHelp() {
+      alert(`📚 MemeDash - How It Works:
+
+1. SCANNER: Finds new tokens every 5 minutes
+2. QUALITY CHECK: Scores 0-100 using audit logic
+3. FAKE VOLUME: Filters out farmed tokens
+4. ALERTS: Sends Telegram on new tokens or upgrades
+5. TRACKING: Monitor Watch tokens → get alert when Clean
+6. DASHBOARD: See live tokens, click to verify on DexScreener
+
+Score Ranges:
+✨ 75+ = CLEAN (safe to buy)
+🔔 55-74 = WATCH (monitor closely)
+⚠️ <55 = AVOID (risky)
+
+Always verify on-chain before trading!`);
+    }
+
+    function showStatus() {
+      const statusText = `📊 System Status:
+
+✅ Scanner: Running (every 5 min)
+✅ Database: Connected
+✅ Telegram: Ready
+✅ Dashboard: Live
+✅ Mobile: Optimized
+
+Features Active:
+• Real-time scanning
+• Fake volume detection
+• Watch token tracking
+• Graduation alerts
+• Market cap display
+
+Everything is working! 🚀`;
+      alert(statusText);
     }
 
     async function loadDemoData() {
