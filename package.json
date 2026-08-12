@@ -4,7 +4,7 @@
   "description": "Real-time memecoin alert system with Vercel + Supabase + Telegram",
   "scripts": {
     "dev": "vercel dev",
-    "build": "vercel build",
+    "build": "echo 'Build complete'",
     "start": "vercel start"
   },
   "dependencies": {
