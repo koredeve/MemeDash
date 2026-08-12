@@ -40,20 +40,17 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Add to watchlist (using default user UUID)
-    const defaultUserId = "550e8400-e29b-41d4-a716-446655440000"; // Static UUID for default user
-
+    // Add to watchlist (no user_id constraint for simplicity)
     const { data: watchlistData, error: watchError } = await supabase
       .from("watchlist")
       .upsert(
         {
-          user_id: defaultUserId,
           token_mint: tokenAddress,
           added_at: new Date().toISOString(),
           source: "dashboard",
           notes: `Tracked: ${currentStatus} status on ${new Date().toLocaleDateString()}`,
         },
-        { onConflict: "user_id,token_mint" }
+        { onConflict: "token_mint" }
       );
 
     if (watchError) {

@@ -152,6 +152,11 @@
       padding: 24px 32px;
       border-bottom: 1px solid var(--border);
       background: var(--bg-surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      max-height: 40vh;
+      overflow-y: auto;
     }
 
     .header-top {
@@ -479,7 +484,7 @@
     /* MOBILE VIEW */
     @media (max-width: 768px) {
       body {
-        padding: 16px;
+        padding: 0;
       }
 
       .app-container {
@@ -489,24 +494,32 @@
 
       .main-content {
         height: auto;
+        overflow: visible;
       }
 
       .header {
-        padding: 16px;
+        padding: 12px 16px;
+        max-height: none;
+        position: static;
+        overflow: visible;
       }
 
       .header-top {
-        flex-direction: column;
-        gap: 12px;
+        flex-direction: row;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
       }
 
       .header-title {
-        font-size: 1.8em;
+        font-size: 1.4em;
+        margin-bottom: 0;
       }
 
       .metrics-row {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 8px;
       }
 
       .metric-card {
@@ -518,20 +531,22 @@
       }
 
       .filters {
-        padding: 12px 16px;
+        padding: 10px 8px;
         overflow-x: auto;
-        gap: 8px;
+        gap: 6px;
+        flex-wrap: nowrap;
       }
 
       .filter-btn {
-        padding: 8px 14px;
-        font-size: 12px;
+        padding: 6px 12px;
+        font-size: 11px;
         white-space: nowrap;
+        flex-shrink: 0;
       }
 
       .token-list {
-        padding: 12px 0;
-        gap: 10px;
+        padding: 8px 8px;
+        gap: 8px;
       }
 
       .token-item {

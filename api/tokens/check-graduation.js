@@ -12,12 +12,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Get all watched tokens (for default user)
-    const defaultUserId = "550e8400-e29b-41d4-a716-446655440000";
+    // Get all watched tokens
     const { data: watchlist, error: watchError } = await supabase
       .from("watchlist")
-      .select("token_mint")
-      .eq("user_id", defaultUserId);
+      .select("token_mint");
 
     if (watchError || !watchlist) {
       return res.status(200).json({ success: true, graduated: 0 });

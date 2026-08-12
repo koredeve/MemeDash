@@ -37,12 +37,11 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- 3. Watchlist table (user's tracked tokens)
 CREATE TABLE IF NOT EXISTS watchlist (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token_mint VARCHAR NOT NULL,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  token_mint VARCHAR NOT NULL UNIQUE,
   added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   source VARCHAR DEFAULT 'dashboard', -- 'telegram', 'dashboard'
-  notes VARCHAR,
-  UNIQUE(user_id, token_mint)
+  notes VARCHAR
 );
 
 -- 4. Alert rules table (user preferences)
