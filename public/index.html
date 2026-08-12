@@ -670,6 +670,7 @@
               </div>
               <div style="margin-top: 8px; display: flex; gap: 8px;">
                 <a href="https://dexscreener.com/solana/${token.mint}" target="_blank" style="color: var(--cyan); font-size: 12px; text-decoration: underline;">🔗 View DexScreener</a>
+                <button onclick="event.stopPropagation(); sendAuditToTelegram('${token.mint}', '${token.symbol}')" style="padding: 4px 12px; background: var(--blue); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">📊 Run Audit</button>
               </div>
             </div>
             <div class="token-right">
@@ -731,6 +732,34 @@
       loadTokens();
     }
 
+    async function sendAuditToTelegram(mint, symbol) {
+      try {
+        document.getElementById('sync-status').textContent = '📤 Sending audit...';
+
+        const response = await fetch('/api/tokens/audit-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tokenAddress: mint,
+            symbol: symbol
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert('✅ Full audit sent to your Telegram!');
+          document.getElementById('sync-status').textContent = '✓ Audit sent';
+        } else {
+          alert('❌ Error: ' + data.error);
+          document.getElementById('sync-status').textContent = '⚠️ Error sending audit';
+        }
+      } catch (error) {
+        alert('❌ ' + error.message);
+        document.getElementById('sync-status').textContent = '⚠️ Error';
+      }
+    }
+
     function showAuditDetail(mint, symbol, score, status) {
       const dexUrl = `https://dexscreener.com/solana/${mint}`;
       const message = `📊 AUDIT DETAILS: $${symbol}
@@ -738,14 +767,14 @@
 Score: ${score}/100
 Status: ${status.toUpperCase()}
 
-Viewing full metrics:
+Click "Run Audit" to send detailed report to Telegram with:
 - Liquidity quality
 - Volume organic status
 - Holder distribution
 - Deployer history
-- Smart wallet activity
+- Full scoring breakdown
 
-🔗 [Full audit on DexScreener](${dexUrl})
+🔗 [View on DexScreener](${dexUrl})
 
 ✅ This token passed our scoring algorithm
 ⚠️ Always verify on-chain before trading`;
