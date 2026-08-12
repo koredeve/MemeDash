@@ -538,6 +538,8 @@
       }
 
       .sidebar {
+        display: flex;  /* FIX: Override tablet's display: none */
+        flex-direction: column;
         position: fixed;
         left: -280px;
         top: 0;
