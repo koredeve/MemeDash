@@ -652,8 +652,9 @@
       }
 
       .app-container {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
         min-height: auto;
+        position: relative;
       }
 
       .main-content {
@@ -662,25 +663,38 @@
       }
 
       .sidebar {
-        display: flex;
-        flex-direction: column;
-        position: fixed;
-        left: -280px;
-        top: 0;
+        display: flex !important;
+        flex-direction: column !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
         height: 100vh;
         width: 280px;
         z-index: 998;
-        transition: left 0.3s ease;
         border-right: 1px solid var(--border);
         box-shadow: 2px 0 8px rgba(0,0,0,0.3);
         overflow-y: auto;
         padding: 60px 20px 20px 20px;
         background: var(--bg-surface);
-        gap: 0;
+        gap: 0 !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s ease !important;
       }
 
       .sidebar.active {
+        transform: translateX(0) !important;
+      }
+
+      /* Overlay backdrop when sidebar is active */
+      .app-container.sidebar-active::after {
+        content: '';
+        position: fixed;
+        top: 0;
         left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 997;
       }
 
       .mobile-menu-btn {
@@ -1259,20 +1273,24 @@ Click "Run Audit" to send detailed report to Telegram with:
     function toggleMobileMenu() {
       const sidebar = document.querySelector('.sidebar');
       const btn = document.querySelector('.mobile-menu-btn');
+      const appContainer = document.querySelector('.app-container');
       if (!sidebar || !btn) {
         console.error('Mobile menu elements not found!');
         return;
       }
       sidebar.classList.toggle('active');
       btn.classList.toggle('active');
+      appContainer.classList.toggle('sidebar-active');
       console.log('Menu toggled. Active:', sidebar.classList.contains('active'));
     }
 
     function closeMobileMenu() {
       const sidebar = document.querySelector('.sidebar');
       const btn = document.querySelector('.mobile-menu-btn');
+      const appContainer = document.querySelector('.app-container');
       sidebar.classList.remove('active');
       btn.classList.remove('active');
+      appContainer.classList.remove('sidebar-active');
     }
 
     // Close menu when clicking outside
