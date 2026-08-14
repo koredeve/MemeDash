@@ -334,12 +334,13 @@ module.exports = async (req, res) => {
 
     const { count: tokensDetectedToday, error: countError } = await supabase
       .from("tokens")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact" })
       .gte("detected_at", todayISOString);
 
     const { count: alertsSentToday, error: alertCountError } = await supabase
       .from("tokens")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact" })
+      .not("last_alerted_at", "is", null)
       .gte("last_alerted_at", todayISOString);
 
     const { data: statusData, error: statusError } = await supabase.from("scanner_status").upsert({
