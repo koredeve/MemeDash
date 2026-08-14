@@ -892,9 +892,9 @@
           <div class="dot online"></div>
           <span>Backend: Live</span>
         </div>
-        <div class="status-badge online">
-          <div class="dot online"></div>
-          <span>Telegram: Ready</span>
+        <div class="status-badge online" id="telegramStatusBadge">
+          <div class="dot online" id="telegramStatusDot"></div>
+          <span id="telegramStatusText">Telegram: Checking...</span>
         </div>
       </div>
 
@@ -1230,6 +1230,35 @@
       return sessionId;
     }
 
+    async function updateTelegramStatus() {
+      try {
+        const response = await fetch(`/api/telegram/auth?action=list-bots`);
+        const data = await response.json();
+
+        const statusBadge = document.getElementById('telegramStatusBadge');
+        const statusDot = document.getElementById('telegramStatusDot');
+        const statusText = document.getElementById('telegramStatusText');
+
+        if (data.success && data.count > 0) {
+          // Connected
+          statusBadge.classList.add('online');
+          statusBadge.classList.remove('offline');
+          statusDot.classList.add('online');
+          statusDot.classList.remove('offline');
+          statusText.textContent = '✅ Telegram: Connected';
+        } else {
+          // Not connected
+          statusBadge.classList.remove('online');
+          statusBadge.classList.add('offline');
+          statusDot.classList.remove('online');
+          statusDot.classList.add('offline');
+          statusText.textContent = '⏳ Telegram: Waiting';
+        }
+      } catch (error) {
+        console.error('Error updating Telegram status:', error);
+      }
+    }
+
     async function configWebhook() {
       // Show telegram connection modal
       openModal('telegramConfigModal');
@@ -1240,15 +1269,18 @@
 
     async function checkTelegramConnection() {
       try {
-        const sessionId = getTelegramSessionId();
-        const response = await fetch(`/api/telegram/auth?action=get-config&session_id=${sessionId}`);
-        const data = await response.json();
+        // Check if ANY bots are registered (bot connection via callback_query)
+        const listResponse = await fetch(`/api/telegram/auth?action=list-bots`);
+        const listData = await listResponse.json();
 
         const msgDiv = document.getElementById('connectionMessage');
         const checkBtn = document.getElementById('connectionCheckArea');
 
-        if (data.is_connected && data.connection) {
-          msgDiv.textContent = `✅ Connected as ${data.connection.display_name}! Alerts will be sent to your Telegram.`;
+        if (listData.success && listData.count > 0 && listData.bots && listData.bots.length > 0) {
+          // Bot is connected!
+          const bot = listData.bots[0];
+          const displayName = bot.session_id.startsWith('tg_') ? 'Your Telegram' : bot.session_id;
+          msgDiv.textContent = `✅ Connected! Alerts will be sent to @meme_dash_bot.`;
           msgDiv.style.background = 'rgba(16, 185, 129, 0.1)';
           msgDiv.style.color = '#10b981';
           msgDiv.style.display = 'block';
@@ -1256,6 +1288,7 @@
 
           setTimeout(() => {
             closeModal('telegramConfigModal');
+            updateTelegramStatus();
           }, 2000);
         } else {
           msgDiv.textContent = '⏳ Waiting for connection... Complete the steps above and click the button again.';
@@ -1264,6 +1297,7 @@
           msgDiv.style.display = 'block';
           checkBtn.style.display = 'block';
         }
+        updateTelegramStatus();
       } catch (error) {
         const msgDiv = document.getElementById('connectionMessage');
         msgDiv.textContent = '❌ Error checking connection: ' + error.message;
@@ -1271,6 +1305,7 @@
         msgDiv.style.color = '#ef4444';
         msgDiv.style.display = 'block';
         document.getElementById('connectionCheckArea').style.display = 'block';
+        updateTelegramStatus();
       }
     }
 
@@ -1512,9 +1547,13 @@ Click "Run Audit" to send detailed report to Telegram with:
 
     // Load tokens on startup
     loadTokens();
+    updateTelegramStatus();
 
     // Refresh every 5 minutes (300000ms)
     setInterval(loadTokens, 300000);
+
+    // Check Telegram status every 10 seconds
+    setInterval(updateTelegramStatus, 10000);
   </script>
 </body>
 </html>
