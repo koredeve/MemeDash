@@ -185,5 +185,37 @@ module.exports = async (req, res) => {
     }
   }
 
+  // ============= DELETE: Disconnect bot =============
+  if (req.method === "DELETE") {
+    try {
+      const { session_id } = req.query;
+
+      if (!session_id) {
+        return res.status(400).json({ error: "Missing session_id parameter" });
+      }
+
+      console.log(`[TELEGRAM AUTH] Deleting session: ${session_id}`);
+
+      const { data, error } = await supabase
+        .from("user_telegram_bots")
+        .delete()
+        .eq("session_id", session_id);
+
+      if (error) {
+        console.error("[DISCONNECT] Delete error:", error);
+        return res.status(500).json({ error: error.message });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Disconnected from Telegram",
+        session_id,
+      });
+    } catch (error) {
+      console.error("[TELEGRAM AUTH] DELETE Error:", error.message);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
   return res.status(405).json({ error: "Method not allowed" });
 };

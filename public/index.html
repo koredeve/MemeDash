@@ -1309,12 +1309,28 @@
     // Disconnect telegram bot
     async function disconnectTelegram() {
       try {
-        // Since we don't have a delete endpoint, we'll just update the sidebar for now
-        // In a real app, you'd delete from database
-        await updateTelegramStatus();
-        alert('Disconnected from Telegram');
+        const bot = await getConnectedBot();
+        if (!bot) {
+          alert('No connection found to disconnect');
+          return;
+        }
+
+        // Call DELETE endpoint to remove from database
+        const response = await fetch(
+          `/api/telegram/auth?session_id=${encodeURIComponent(bot.session_id)}`,
+          { method: 'DELETE' }
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+          await updateTelegramStatus();
+          alert('✅ Disconnected from Telegram');
+        } else {
+          alert('❌ Error disconnecting: ' + data.error);
+        }
       } catch (error) {
-        alert('Error disconnecting: ' + error.message);
+        alert('❌ Error disconnecting: ' + error.message);
       }
     }
 
