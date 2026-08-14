@@ -99,7 +99,7 @@ module.exports = async (req, res) => {
         if (volume < 50000) continue;
 
         // 3. Not brand new (avoid instant rugs)
-        if (pairAge < 15 && liquidity < 100000) continue; // If <15 min old, need $100k+ liquidity
+        if (ageSeconds < 900 && liquidity < 100000) continue; // If <15 min old, need $100k+ liquidity
 
         // 4. Holder count (real community, not whale trap)
         const txCount = Number(pair.txns?.h24?.buys || 0) + Number(pair.txns?.h24?.sells || 0);
