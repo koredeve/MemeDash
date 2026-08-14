@@ -168,6 +168,70 @@ module.exports = async (req, res) => {
           }
         }
 
+        // ===== ADVANCED VOLUME & DEPLOYER ANALYSIS =====
+
+        // 1. ORGANIC VOLUME DETECTION
+        const buysH24 = Number(pair.txns?.h24?.buys || 0);
+        const sellsH24 = Number(pair.txns?.h24?.sells || 0);
+        const totalTxns = buysH24 + sellsH24;
+        const buyRatio = totalTxns > 0 ? buysH24 / totalTxns : 0.5;
+
+        // Organic volume: buys/sells close to 50/50 (40-60% range is normal)
+        const isOrganicVolume = buyRatio >= 0.35 && buyRatio <= 0.65;
+
+        // 2. PUMP AND DUMP DETECTION
+        const m5Volume = Number(pair.volume?.m5 || 0);
+        const m15Volume = Number(pair.volume?.m15 || 0);
+        const h1Volume = Number(pair.volume?.h1 || 0);
+
+        // Pump indicator: sudden volume spike (5min volume > 2x of 1hr avg)
+        const volumeSpike = m5Volume > (h1Volume / 12) * 2;
+        const priceChange5m = Number(pair.priceChange?.m5 || 0);
+        const isPumpAndDump = volumeSpike && priceChange5m > 50; // Volume spike + price spike = pump
+
+        // 3. DEPLOYER HISTORY CHECK
+        const deployerAddress = pair.info?.deployer || "unknown";
+        let deployerTokenCount = 1;
+        let deployerRugCount = 0;
+
+        // Count how many tokens this deployer has created
+        if (deployerAddress !== "unknown") {
+          const { data: deployerTokens } = await supabase
+            .from("tokens")
+            .select("status, mint")
+            .eq("deployer_address", deployerAddress);
+
+          if (deployerTokens) {
+            deployerTokenCount = deployerTokens.length;
+            deployerRugCount = deployerTokens.filter(t => t.status === "avoid").length;
+          }
+        }
+
+        // Flag if deployer has multiple tokens (potential scammer pattern)
+        const isSerialDeployer = deployerTokenCount >= 5;
+        const deployerSuccessRate = deployerTokenCount > 0
+          ? ((deployerTokenCount - deployerRugCount) / deployerTokenCount) * 100
+          : 100;
+
+        // 4. BOT/FARMING DETECTION
+        const avgTxnSize = totalTxns > 0 ? volume / totalTxns : 0;
+        const priceImpact = liquidity > 0 ? (volume / liquidity) * 100 : 0;
+
+        // Farming: low price impact despite high volume = bots, not real buyers
+        const isFarmed = priceImpact < 5 && volume > 100000; // High volume, minimal price movement
+
+        console.log(`[ANALYSIS] ${baseToken.symbol}:
+          Organic: ${isOrganicVolume} (Buy ratio: ${(buyRatio * 100).toFixed(0)}%)
+          PumpDump: ${isPumpAndDump} (5m spike: ${volumeSpike}, Price: ${priceChange5m.toFixed(1)}%)
+          Deployer: ${deployerTokenCount} tokens, ${deployerSuccessRate.toFixed(0)}% success
+          Farmed: ${isFarmed} (Price impact: ${priceImpact.toFixed(1)}%)`);
+
+        // Penalize suspicious activity
+        let deployerRugs = isRugged ? 3 : 0;
+        if (isSerialDeployer && deployerSuccessRate < 50) deployerRugs += 2; // Serial rug puller
+        if (isPumpAndDump) deployerRugs += 2; // Pump and dump indicator
+        if (isFarmed) deployerRugs += 1; // Bot farming
+
         // Score the token
         let scored = scoreToken({
           liquidity,
@@ -177,15 +241,14 @@ module.exports = async (req, res) => {
           topTen: Math.random() * 40 + 12,
           smartHits: boost.amount ? 1 : 0,
           deployerAge: 7,
-          deployerRugs: isRugged ? 3 : 0,  // Heavy penalty if rugged
+          deployerRugs: deployerRugs,  // Now includes sophisticated analysis
           mintRevoked: true,
           freezeRevoked: true,
-          fakeVolume:
-            liquidity > 0 && volume / liquidity > 22 && volume < 100000,
-          m5Volume: Number(pair.volume?.m5 || 0),
-          priceChangeM5: Number(pair.priceChange?.m5 || 0),
-          buysM5: Number(pair.txns?.m5?.buys || 0),
-          sellsM5: Number(pair.txns?.m5?.sells || 0),
+          fakeVolume: !isOrganicVolume || isPumpAndDump || isFarmed,  // Updated fake volume detection
+          m5Volume: m5Volume,
+          priceChangeM5: priceChange5m,
+          buysM5: buysH24,
+          sellsM5: sellsH24,
         });
 
         // OVERRIDE: If rugged, force to AVOID status
@@ -221,7 +284,7 @@ module.exports = async (req, res) => {
           (isNewToken && hasOrganicVolume && isHighQuality) ||  // New token that passed scoring
           (statusChanged && (scored.classification === 'clean' || isRugged) && hoursSinceLastAlert >= 1); // Status changed + 1hr cooldown
 
-        // Store in database (including market cap)
+        // Store in database (including market cap and deployer info)
         await supabase.from("tokens").upsert(
           {
             mint: boost.tokenAddress,
@@ -234,7 +297,14 @@ module.exports = async (req, res) => {
             volume,
             fomo_pressure: scored.fomoPressure,
             fake_volume: scored.isFakeVolume,
-            deployer_rugs: 0,
+            deployer_rugs: deployerRugs,
+            deployer_address: deployerAddress,
+            deployer_token_count: deployerTokenCount,
+            deployer_success_rate: deployerSuccessRate,
+            is_pump_dump: isPumpAndDump,
+            is_farmed: isFarmed,
+            organic_volume: isOrganicVolume,
+            buy_ratio: buyRatio,
             detected_at: isNewToken ? new Date().toISOString() : existingToken.detected_at,
             // Add market data
             market_cap: marketCap,
