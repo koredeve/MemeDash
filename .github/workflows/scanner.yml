@@ -1,0 +1,51 @@
+name: MemeDash Scanner (Every 5 Minutes)
+
+on:
+  schedule:
+    # Run every 5 minutes (GitHub's minimum is 5 minutes)
+    - cron: '*/5 * * * *'
+
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Trigger Scanner
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" https://lightmeme.vercel.app/api/scanner/run)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response:"
+          echo "$BODY" | jq . 2>/dev/null || echo "$BODY"
+
+          # Fail workflow if HTTP status is not 2xx
+          if [[ ! $HTTP_CODE =~ ^2 ]]; then
+            echo "❌ Scanner call failed with status $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "✅ Scanner triggered successfully"
+
+      - name: Check Response Status
+        run: |
+          RESPONSE=$(curl -s https://lightmeme.vercel.app/api/scanner/run)
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
+          SCANNED=$(echo "$RESPONSE" | jq -r '.scanned // 0')
+          ALERTED=$(echo "$RESPONSE" | jq -r '.alerted // 0')
+
+          echo "📊 Scan Results:"
+          echo "  Scanned: $SCANNED tokens"
+          echo "  Alerted: $ALERTED users"
+
+          if [ "$SUCCESS" = "true" ]; then
+            echo "✅ Scan completed successfully"
+          else
+            echo "⚠️  Scan completed with issues"
+            exit 1
+          fi
