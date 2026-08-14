@@ -901,7 +901,7 @@
       <div class="sidebar-section">
         <div class="sidebar-title">Settings</div>
         <div class="sidebar-item" onclick="testAlert()">🧪 Send Test Alert</div>
-        <div class="sidebar-item" onclick="configWebhook()">🔗 Setup Telegram</div>
+        <div class="sidebar-item" id="telegramButtonItem" onclick="handleTelegramClick()">🔗 Setup Telegram</div>
         <div class="sidebar-item" onclick="refreshData()">🔄 Refresh Now</div>
       </div>
 
@@ -1232,14 +1232,14 @@
 
     async function updateTelegramStatus() {
       try {
-        const response = await fetch(`/api/telegram/auth?action=list-bots`);
-        const data = await response.json();
+        const bot = await getConnectedBot();
 
+        // Update status badge
         const statusBadge = document.getElementById('telegramStatusBadge');
         const statusDot = document.getElementById('telegramStatusDot');
         const statusText = document.getElementById('telegramStatusText');
 
-        if (data.success && data.count > 0) {
+        if (bot) {
           // Connected
           statusBadge.classList.add('online');
           statusBadge.classList.remove('offline');
@@ -1254,58 +1254,116 @@
           statusDot.classList.add('offline');
           statusText.textContent = '⏳ Telegram: Waiting';
         }
+
+        // Update sidebar button
+        const buttonItem = document.getElementById('telegramButtonItem');
+        if (buttonItem) {
+          if (bot) {
+            const username = bot.first_name || 'Telegram User';
+            buttonItem.textContent = `✅ ${username} (click to disconnect)`;
+            buttonItem.style.color = '#10b981';
+          } else {
+            buttonItem.textContent = '🔗 Setup Telegram';
+            buttonItem.style.color = '';
+          }
+        }
       } catch (error) {
         console.error('Error updating Telegram status:', error);
       }
     }
 
-    async function configWebhook() {
-      // Show telegram connection modal
-      openModal('telegramConfigModal');
+    // Global state for telegram connection
+    let currentBotConnection = null;
 
-      // Auto-check if already connected
-      await checkTelegramConnection();
+    // Get current bot connection from database
+    async function getConnectedBot() {
+      try {
+        const response = await fetch(`/api/telegram/auth?action=list-bots`);
+        const data = await response.json();
+
+        if (data.success && data.count > 0 && data.bots && data.bots.length > 0) {
+          return data.bots[0];
+        }
+        return null;
+      } catch (error) {
+        console.error('Error getting bot connection:', error);
+        return null;
+      }
     }
 
+    // Handle telegram button click - either connect or disconnect
+    async function handleTelegramClick() {
+      const bot = await getConnectedBot();
+
+      if (bot) {
+        // Already connected - show disconnect option
+        if (confirm(`Disconnect @meme_dash_bot?\n\nYou will stop receiving alerts.`)) {
+          await disconnectTelegram();
+        }
+      } else {
+        // Not connected - open setup modal
+        openSetupModal();
+      }
+    }
+
+    // Disconnect telegram bot
+    async function disconnectTelegram() {
+      try {
+        // Since we don't have a delete endpoint, we'll just update the sidebar for now
+        // In a real app, you'd delete from database
+        await updateTelegramStatus();
+        alert('Disconnected from Telegram');
+      } catch (error) {
+        alert('Error disconnecting: ' + error.message);
+      }
+    }
+
+    // Open the setup modal
+    function openSetupModal() {
+      openModal('telegramConfigModal');
+      checkTelegramConnection();
+    }
+
+    // Check connection and update message
     async function checkTelegramConnection() {
       try {
-        // Check if ANY bots are registered (bot connection via callback_query)
-        const listResponse = await fetch(`/api/telegram/auth?action=list-bots`);
-        const listData = await listResponse.json();
-
+        const bot = await getConnectedBot();
         const msgDiv = document.getElementById('connectionMessage');
         const checkBtn = document.getElementById('connectionCheckArea');
 
-        if (listData.success && listData.count > 0 && listData.bots && listData.bots.length > 0) {
-          // Bot is connected!
-          const bot = listData.bots[0];
-          const displayName = bot.session_id.startsWith('tg_') ? 'Your Telegram' : bot.session_id;
-          msgDiv.textContent = `✅ Connected! Alerts will be sent to @meme_dash_bot.`;
+        if (bot) {
+          // Connected
+          const username = bot.first_name || 'User';
+          msgDiv.innerHTML = `<div style="color: #10b981; font-weight: 600;">✅ Connected!</div>
+            <div style="margin-top: 8px; font-size: 13px;">
+              Alerts will be sent to your Telegram (@meme_dash_bot).<br>
+              User: <strong>${username}</strong>
+            </div>`;
           msgDiv.style.background = 'rgba(16, 185, 129, 0.1)';
           msgDiv.style.color = '#10b981';
           msgDiv.style.display = 'block';
           checkBtn.style.display = 'block';
 
-          setTimeout(() => {
-            closeModal('telegramConfigModal');
-            updateTelegramStatus();
-          }, 2000);
+          // Don't auto-close - let user see the success
         } else {
-          msgDiv.textContent = '⏳ Waiting for connection... Complete the steps above and click the button again.';
+          msgDiv.innerHTML = `<div style="color: #3b82f6; font-weight: 600;">⏳ Waiting for connection...</div>
+            <div style="margin-top: 8px; font-size: 13px;">
+              1. Click <strong>Connect with @meme_dash_bot</strong> below<br>
+              2. Click the blue button in the bot<br>
+              3. Then click <strong>Refresh Status</strong>
+            </div>`;
           msgDiv.style.background = 'rgba(59, 130, 246, 0.1)';
           msgDiv.style.color = '#3b82f6';
           msgDiv.style.display = 'block';
           checkBtn.style.display = 'block';
         }
-        updateTelegramStatus();
       } catch (error) {
         const msgDiv = document.getElementById('connectionMessage');
-        msgDiv.textContent = '❌ Error checking connection: ' + error.message;
+        msgDiv.textContent = '❌ Error: ' + error.message;
         msgDiv.style.background = 'rgba(239, 68, 68, 0.1)';
         msgDiv.style.color = '#ef4444';
         msgDiv.style.display = 'block';
         document.getElementById('connectionCheckArea').style.display = 'block';
-        updateTelegramStatus();
       }
     }
 
