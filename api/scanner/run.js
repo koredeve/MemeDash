@@ -307,24 +307,8 @@ module.exports = async (req, res) => {
             const botsData = await listBotsResponse.json();
             const userBots = botsData.bots || [];
 
-            if (userBots.length === 0) {
-              // Fallback: send to owner's bot if no users registered
-              const ownerToken = process.env.TELEGRAM_BOT_TOKEN;
-              const ownerId = 5824497779;
-              if (ownerToken) {
-                alerted++;
-                await fetch(`https://api.telegram.org/bot${ownerToken}/sendMessage`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    chat_id: ownerId,
-                    text: message,
-                    parse_mode: "Markdown",
-                    disable_web_page_preview: false,
-                  }),
-                });
-              }
-            } else {
+            // ONLY send to connected users - NO fallback to owner bot
+            if (userBots.length > 0) {
               // Send to all registered user bots
               for (const bot of userBots) {
                 alerted++;
@@ -343,6 +327,9 @@ module.exports = async (req, res) => {
                   console.error(`[SCANNER] Failed to send to bot for session ${bot.session_id}:`, botError.message);
                 }
               }
+            } else {
+              // No connected users - don't send any alerts
+              console.log("[SCANNER] No connected users - alert not sent");
             }
           } catch (fetchError) {
             console.error("[SCANNER] Error fetching user bots:", fetchError.message);

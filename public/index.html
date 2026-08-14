@@ -1360,7 +1360,10 @@
           msgDiv.style.display = 'block';
           checkBtn.style.display = 'block';
 
-          // Don't auto-close - let user see the success
+          // Auto-close modal after 2 seconds
+          setTimeout(() => {
+            closeModal('telegramConfigModal');
+          }, 2000);
         } else {
           msgDiv.innerHTML = `<div style="color: #3b82f6; font-weight: 600;">⏳ Waiting for connection...</div>
             <div style="margin-top: 8px; font-size: 13px;">
