@@ -1083,9 +1083,14 @@
     }
 
     function renderTokens() {
-      const filtered = currentFilter === 'all'
-        ? allTokens
-        : allTokens.filter(t => t.status === currentFilter);
+      let filtered;
+      if (currentFilter === 'all') {
+        // Default "all" view: show clean + watch, EXCLUDE avoid tokens
+        filtered = allTokens.filter(t => t.status !== 'avoid');
+      } else {
+        // Specific filter: show only that status
+        filtered = allTokens.filter(t => t.status === currentFilter);
+      }
 
       if (filtered.length === 0) {
         document.getElementById('token-list').innerHTML = `
