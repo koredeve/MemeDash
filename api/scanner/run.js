@@ -15,6 +15,14 @@ module.exports = async (req, res) => {
   try {
     console.log("[SCANNER] Starting scan...");
 
+    // Known established tokens to EXCLUDE (not new tokens)
+    const EXCLUDED_MINTS = [
+      "EPjFWaLb3odcccccccccccccccccccccccccccccc", // USDC
+      "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenYes", // USDT
+      "So11111111111111111111111111111111111111112", // SOL
+      "mSoLzYCxHdgfd3DjErZwesF3injbgnc9hcc5DTe5pump", // mSOL
+    ];
+
     // Fetch latest tokens from DexScreener
     const dexResponse = await fetch(
       "https://api.dexscreener.com/token-boosts/latest/v1?limit=50"
@@ -37,6 +45,12 @@ module.exports = async (req, res) => {
     for (const boost of boosts.slice(0, 20)) {
       try {
         if (!boost.tokenAddress || boost.chainId !== "solana") continue;
+
+        // SKIP established/known tokens (not new token opportunities)
+        if (EXCLUDED_MINTS.includes(boost.tokenAddress)) {
+          console.log(`[SCANNER] Skipping known token: ${boost.tokenAddress}`);
+          continue;
+        }
 
         // Fetch pair data from DexScreener
         const pairResponse = await fetch(
@@ -93,17 +107,21 @@ module.exports = async (req, res) => {
 
         // QUALITY FILTERS - Only scan tokens with real fundamentals
         // 1. Meaningful liquidity (not trash tier)
-        if (liquidity < 25000) continue;
+        if (liquidity < 30000) continue; // Increased from 25k
 
         // 2. Decent volume (not a ghost token)
-        if (volume < 50000) continue;
+        if (volume < 75000) continue; // Increased from 50k - stricter filter
 
         // 3. Not brand new (avoid instant rugs)
-        if (ageSeconds < 900 && liquidity < 100000) continue; // If <15 min old, need $100k+ liquidity
+        if (ageSeconds < 900 && liquidity < 150000) continue; // If <15 min old, need $150k+ liquidity (stricter)
 
         // 4. Holder count (real community, not whale trap)
         const txCount = Number(pair.txns?.h24?.buys || 0) + Number(pair.txns?.h24?.sells || 0);
-        if (txCount < 50 && liquidity < 75000) continue; // Low activity + low liq = rug risk
+        if (txCount < 100 && liquidity < 100000) continue; // Increased from 50 txns - stricter
+
+        // 5. Volume/Liquidity ratio (detect fake volume)
+        const volumeRatio = liquidity > 0 ? volume / liquidity : Infinity;
+        if (volumeRatio > 50) continue; // Extreme volume ratio = likely fake
 
         scanned++;
 
