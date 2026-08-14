@@ -14,9 +14,13 @@ module.exports = async (req, res) => {
   try {
     const { status, limit = 50, offset = 0 } = req.query;
 
+    // Only show tokens from last 24 hours (prevents list from growing unbounded)
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
     let query = supabase
       .from("tokens")
       .select("*")
+      .gte("detected_at", oneDayAgo)  // Only tokens detected in last 24 hours
       .order("detected_at", { ascending: false });
 
     // Filter by status if provided
