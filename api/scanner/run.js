@@ -107,21 +107,21 @@ module.exports = async (req, res) => {
 
         // QUALITY FILTERS - Only scan tokens with real fundamentals
         // 1. Meaningful liquidity (not trash tier)
-        if (liquidity < 30000) continue; // Increased from 25k
+        if (liquidity < 25000) continue;
 
         // 2. Decent volume (not a ghost token)
-        if (volume < 75000) continue; // Increased from 50k - stricter filter
+        if (volume < 50000) continue;
 
         // 3. Not brand new (avoid instant rugs)
-        if (ageSeconds < 900 && liquidity < 150000) continue; // If <15 min old, need $150k+ liquidity (stricter)
+        if (ageSeconds < 900 && liquidity < 100000) continue; // If <15 min old, need $100k+ liquidity
 
         // 4. Holder count (real community, not whale trap)
         const txCount = Number(pair.txns?.h24?.buys || 0) + Number(pair.txns?.h24?.sells || 0);
-        if (txCount < 100 && liquidity < 100000) continue; // Increased from 50 txns - stricter
+        if (txCount < 50 && liquidity < 75000) continue;
 
         // 5. Volume/Liquidity ratio (detect fake volume)
         const volumeRatio = liquidity > 0 ? volume / liquidity : Infinity;
-        if (volumeRatio > 50) continue; // Extreme volume ratio = likely fake
+        if (volumeRatio > 40) continue; // Extreme volume ratio = likely fake (adjusted from 50)
 
         scanned++;
 
