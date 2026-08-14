@@ -60,7 +60,36 @@ module.exports = async (req, res) => {
         const marketCap = Number(pair.marketCap || 0);
         const fdv = Number(pair.fdv || 0);
         const priceUsd = Number(pair.priceUsd || 0);
-        const pairAge = pair.pairCreatedAt ? Math.round((Date.now() - pair.pairCreatedAt) / 60000) : 0;
+
+        // Format token age - convert milliseconds to human-readable format
+        let ageFormatted = "N/A";
+        if (pair.pairCreatedAt) {
+          const ageSeconds = Math.floor((Date.now() - new Date(pair.pairCreatedAt).getTime()) / 1000);
+          // Format as "Xday Xhr Xmin" etc
+          const parts = [];
+          let remaining = ageSeconds;
+
+          if (remaining >= 86400) { // 1 day
+            const days = Math.floor(remaining / 86400);
+            parts.push(`${days}day`);
+            remaining %= 86400;
+          }
+          if (remaining >= 3600) { // 1 hour
+            const hours = Math.floor(remaining / 3600);
+            parts.push(`${hours}hr`);
+            remaining %= 3600;
+          }
+          if (remaining >= 60) { // 1 minute
+            const mins = Math.floor(remaining / 60);
+            parts.push(`${mins}min`);
+            remaining %= 60;
+          }
+          if (remaining > 0 || parts.length === 0) {
+            parts.push(`${remaining}sec`);
+          }
+
+          ageFormatted = parts.join(" ");
+        }
 
         // QUALITY FILTERS - Only scan tokens with real fundamentals
         // 1. Meaningful liquidity (not trash tier)
@@ -274,7 +303,7 @@ module.exports = async (req, res) => {
 🔗 [View on DexScreener](https://dexscreener.com/solana/${boost.tokenAddress})
 📊 [Send Full Audit](https://lightmeme.vercel.app/?token=${boost.tokenAddress})
 
-⏰ Age: ${pairAge}m old`;
+⏰ Age: ${ageFormatted}`;
             }
 
             await fetch(
