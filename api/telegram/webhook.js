@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
         try {
           // Save connection to database via consolidated auth endpoint
           const connectResponse = await fetch(
-            new URL('/api/telegram/auth', process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+            'https://lightmeme.vercel.app/api/telegram/auth',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
