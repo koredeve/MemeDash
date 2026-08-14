@@ -45,6 +45,7 @@ module.exports = async (req, res) => {
           {
             session_id: sessionId,
             user_id: user_id,
+            bot_token: bot_token,
             chat_id: parseInt(chat_id),
             first_name,
             last_name,

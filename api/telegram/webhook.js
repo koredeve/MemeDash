@@ -37,6 +37,7 @@ module.exports = async (req, res) => {
                 first_name: firstName,
                 last_name: lastName,
                 chat_id: chatId,
+                bot_token: process.env.TELEGRAM_BOT_TOKEN,
               }),
             }
           );
