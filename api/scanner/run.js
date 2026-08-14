@@ -23,40 +23,37 @@ module.exports = async (req, res) => {
       "mSoLzYCxHdgfd3DjErZwesF3injbgnc9hcc5DTe5pump", // mSOL
     ];
 
-    // Fetch latest tokens from pump.fun (real new tokens, not just boosted)
+    // Fetch latest tokens from Solscan (real new tokens + activity)
     let tokenList = [];
     try {
-      const pumpResponse = await fetch(
-        "https://pumpportal.fun/api/trades/latest?limit=100",
+      const solscanResponse = await fetch(
+        "https://api.solscan.io/token:list?sortBy=createdTime&direction=desc&limit=100&offset=0",
         { timeout: 10000 }
       );
-      const pumpData = await pumpResponse.json();
+      const solscanData = await solscanResponse.json();
 
-      // Extract unique tokens from pump.fun trades
-      if (Array.isArray(pumpData)) {
-        const tokenMap = {};
-        pumpData.forEach(trade => {
-          if (trade.mint && !tokenMap[trade.mint]) {
-            tokenMap[trade.mint] = trade.mint;
-            tokenList.push(trade.mint);
-          }
-        });
+      if (solscanData.data && Array.isArray(solscanData.data)) {
+        tokenList = solscanData.data
+          .map(t => t.address)
+          .filter(a => a && a.length > 30); // Valid mint addresses
       }
-    } catch (pumpError) {
-      console.log("[SCANNER] pump.fun API unavailable, using DexScreener fallback");
+    } catch (solscanError) {
+      console.log("[SCANNER] Solscan API unavailable, trying DexScreener");
 
-      // Fallback to DexScreener boosts if pump.fun fails
+      // Fallback: Try getting activity from DexScreener
       try {
         const dexResponse = await fetch(
-          "https://api.dexscreener.com/token-boosts/latest/v1?limit=50",
+          "https://api.dexscreener.com/token-pairs/v1/solana?limit=100",
           { timeout: 10000 }
         );
-        const boosts = await dexResponse.json();
-        if (Array.isArray(boosts)) {
-          tokenList = boosts.map(b => b.tokenAddress).filter(t => t);
+        const dexData = await dexResponse.json();
+        if (dexData.pairs && Array.isArray(dexData.pairs)) {
+          tokenList = dexData.pairs
+            .map(p => p.baseToken?.address)
+            .filter(a => a);
         }
       } catch (dexError) {
-        console.log("[SCANNER] Both APIs failed");
+        console.log("[SCANNER] All APIs failed");
       }
     }
 
@@ -73,7 +70,7 @@ module.exports = async (req, res) => {
     let alerted = 0;
 
     // Process each token
-    for (const tokenAddress of tokenList.slice(0, 50)) {
+    for (const tokenAddress of tokenList.slice(0, 100)) {
       try {
         const boost = { tokenAddress, chainId: "solana" };
         if (!tokenAddress) continue;
