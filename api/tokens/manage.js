@@ -122,11 +122,25 @@ module.exports = async (req, res) => {
 
     // ========== ACTION: SEND AUDIT ==========
     if (action === "audit-send") {
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = 5824497779;
+      // IMPORTANT: Only send if user is explicitly connected
+      const { data: connectedBots, error: botsError } = await supabase
+        .from("user_telegram_bots")
+        .select("*");
 
-      if (!botToken) {
-        return res.status(400).json({ error: "TELEGRAM_BOT_TOKEN not set" });
+      if (!connectedBots || connectedBots.length === 0) {
+        return res.status(400).json({
+          error: "No Telegram connection found. Please connect your Telegram first.",
+          success: false,
+        });
+      }
+
+      // Get first connected bot
+      const userBot = connectedBots[0];
+      const botToken = userBot.bot_token;
+      const chatId = userBot.chat_id;
+
+      if (!botToken || !chatId) {
+        return res.status(400).json({ error: "Invalid bot configuration" });
       }
 
       // Fetch token details from database

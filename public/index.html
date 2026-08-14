@@ -1066,6 +1066,61 @@
   </div>
 
   <script>
+    // ===== NOTIFICATION SYSTEM (replaces alert()) =====
+    function showNotification(message, type = 'info', duration = 5000) {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        word-wrap: break-word;
+      `;
+
+      if (type === 'success') {
+        notification.style.background = 'rgba(16, 185, 129, 0.9)';
+        notification.style.color = 'white';
+      } else if (type === 'error') {
+        notification.style.background = 'rgba(239, 68, 68, 0.9)';
+        notification.style.color = 'white';
+      } else if (type === 'warning') {
+        notification.style.background = 'rgba(245, 158, 11, 0.9)';
+        notification.style.color = 'white';
+      } else {
+        notification.style.background = 'rgba(59, 130, 246, 0.9)';
+        notification.style.color = 'white';
+      }
+
+      notification.textContent = message;
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+      }, duration);
+    }
+
+    // Add animations
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+
     let currentFilter = 'all';
     let allTokens = [];
 
@@ -1211,11 +1266,23 @@
 
     async function testAlert() {
       try {
+        // Check if Telegram is connected
+        const bot = await getConnectedBot();
+        if (!bot) {
+          showNotification('❌ Connect Telegram first to send alerts', 'warning');
+          return;
+        }
+
         const response = await fetch('/api/telegram/test-alert');
         const data = await response.json();
-        alert(data.success ? '✅ Test alert sent!' : '❌ ' + data.error);
+
+        if (data.success) {
+          showNotification('✅ Test alert sent to your Telegram!', 'success');
+        } else {
+          showNotification('❌ ' + data.error, 'error');
+        }
       } catch (error) {
-        alert('❌ ' + error.message);
+        showNotification('❌ Error: ' + error.message, 'error');
       }
     }
 
@@ -1311,7 +1378,7 @@
       try {
         const bot = await getConnectedBot();
         if (!bot) {
-          alert('No connection found to disconnect');
+          showNotification('No connection found', 'warning');
           return;
         }
 
@@ -1325,12 +1392,12 @@
 
         if (data.success) {
           await updateTelegramStatus();
-          alert('✅ Disconnected from Telegram');
+          showNotification('✅ Disconnected from Telegram', 'success');
         } else {
-          alert('❌ Error disconnecting: ' + data.error);
+          showNotification('❌ ' + data.error, 'error');
         }
       } catch (error) {
-        alert('❌ Error disconnecting: ' + error.message);
+        showNotification('❌ Error: ' + error.message, 'error');
       }
     }
 
@@ -1392,6 +1459,13 @@
 
     async function sendAuditToTelegram(mint, symbol) {
       try {
+        // Check if Telegram is connected
+        const bot = await getConnectedBot();
+        if (!bot) {
+          showNotification('❌ Connect Telegram first to send audits', 'warning');
+          return;
+        }
+
         document.getElementById('sync-status').textContent = '📤 Sending audit...';
 
         const response = await fetch('/api/tokens/manage', {
@@ -1407,20 +1481,27 @@
         const data = await response.json();
 
         if (data.success) {
-          alert('✅ Full audit sent to your Telegram!');
+          showNotification('✅ Audit sent to your Telegram!', 'success');
           document.getElementById('sync-status').textContent = '✓ Audit sent';
         } else {
-          alert('❌ Error: ' + data.error);
+          showNotification('❌ ' + data.error, 'error');
           document.getElementById('sync-status').textContent = '⚠️ Error sending audit';
         }
       } catch (error) {
-        alert('❌ ' + error.message);
+        showNotification('❌ Error: ' + error.message, 'error');
         document.getElementById('sync-status').textContent = '⚠️ Error';
       }
     }
 
     async function trackWatchToken(mint, symbol) {
       try {
+        // Check if Telegram is connected
+        const bot = await getConnectedBot();
+        if (!bot) {
+          showNotification('❌ Connect Telegram first to track tokens', 'warning');
+          return;
+        }
+
         console.log('trackWatchToken called with mint:', mint, 'symbol:', symbol);
         document.getElementById('sync-status').textContent = '📌 Tracking token...';
 
@@ -1438,15 +1519,15 @@
 
         if (data.success) {
           console.log('Token tracked successfully');
-          alert('✅ Now tracking $' + symbol + '!\n\nYou\'ll get alerted when it graduates to CLEAN status.');
+          showNotification('✅ Now tracking $' + symbol + '! You\'ll get alerted when it graduates.', 'success');
           document.getElementById('sync-status').textContent = '✓ Token tracked';
         } else {
           console.error('Track failed:', data.error);
-          alert('❌ Error: ' + data.error);
+          showNotification('❌ ' + data.error, 'error');
           document.getElementById('sync-status').textContent = '⚠️ Error tracking';
         }
       } catch (error) {
-        alert('❌ ' + error.message);
+        showNotification('❌ Error: ' + error.message, 'error');
         document.getElementById('sync-status').textContent = '⚠️ Error';
       }
     }

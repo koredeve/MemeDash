@@ -58,11 +58,19 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: watchError.message });
     }
 
-    // Send Telegram notification
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = 5824497779;
+    // Send Telegram notification ONLY if user is connected
+    const { data: connectedBots, error: botsError } = await supabase
+      .from("user_telegram_bots")
+      .select("*");
 
-    if (botToken) {
+    if (connectedBots && connectedBots.length > 0) {
+      const userBot = connectedBots[0];
+      const botToken = userBot.bot_token;
+      const chatId = userBot.chat_id;
+
+      if (!botToken || !chatId) {
+        // No valid bot config - skip sending
+      } else {
       const watchedMessage = `📌 *TOKEN TRACKED FOR GRADUATION*
 
 💰 $${symbol || "TOKEN"}

@@ -39,8 +39,13 @@ module.exports = async (req, res) => {
     }
 
     let graduatedCount = 0;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = 5824497779;
+
+    // Get connected users ONLY - NO fallback to owner bot
+    const { data: connectedBots, error: botsError } = await supabase
+      .from("user_telegram_bots")
+      .select("*");
+
+    const hasConnectedUsers = connectedBots && connectedBots.length > 0;
 
     // Check each token for graduation (Watch → Clean)
     for (const token of tokens || []) {
@@ -60,8 +65,8 @@ module.exports = async (req, res) => {
 
         graduatedCount++;
 
-        // Send graduation alert
-        if (botToken) {
+        // Send graduation alert ONLY to connected users
+        if (hasConnectedUsers) {
           const graduationMessage = `🎓 *TOKEN GRADUATED TO CLEAN!*
 
 💰 $${token.symbol}
@@ -99,19 +104,26 @@ module.exports = async (req, res) => {
 
 Congratulations! 🚀`;
 
-          await fetch(
-            `https://api.telegram.org/bot${botToken}/sendMessage`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                chat_id: chatId,
-                text: graduationMessage,
-                parse_mode: "Markdown",
-                disable_web_page_preview: false,
-              }),
+          // Send to ALL connected users
+          for (const userBot of connectedBots) {
+            try {
+              await fetch(
+                `https://api.telegram.org/bot${userBot.bot_token}/sendMessage`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    chat_id: userBot.chat_id,
+                    text: graduationMessage,
+                    parse_mode: "Markdown",
+                    disable_web_page_preview: false,
+                  }),
+                }
+              );
+            } catch (error) {
+              console.error(`Failed to send graduation alert to user ${userBot.session_id}:`, error.message);
             }
-          );
+          }
 
           // Update token to track when graduation alert was sent
           await supabase
