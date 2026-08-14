@@ -250,6 +250,8 @@ module.exports = async (req, res) => {
           priceChangeM5: priceChange5m,
           buysM5: buysH24,
           sellsM5: sellsH24,
+          marketCap: marketCap,  // NEW: Market cap for liquidity trap detection
+          fdv: fdv,              // NEW: FDV for liquidity trap detection
         });
 
         // OVERRIDE: If rugged, force to AVOID status
@@ -261,9 +263,9 @@ module.exports = async (req, res) => {
 
         // IMPORTANT: Smart alert filtering
         // Only alert on REAL keeper tokens with organic volume
-        const hasOrganicVolume = !scored.isFakeVolume && scored.volumeRatio < 15;
+        const hasOrganicVolume = !scored.isFakeVolume && scored.volumeRatio < 15 && !scored.isLiquidityTrap;
         const isHighQuality =
-          scored.classification === "clean" ||
+          (scored.classification === "clean" && !scored.isLiquidityTrap) ||
           (scored.classification === "watch" && scored.score >= 65); // Watch must be high quality
 
         // Detect status changes
@@ -298,6 +300,7 @@ module.exports = async (req, res) => {
             volume,
             fomo_pressure: scored.fomoPressure,
             fake_volume: scored.isFakeVolume,
+            is_liquidity_trap: scored.isLiquidityTrap,  // NEW: Flag trapped liquidity
             deployer_rugs: deployerRugs,
             deployer_address: deployerAddress,
             deployer_token_count: deployerTokenCount,
