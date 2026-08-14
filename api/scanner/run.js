@@ -327,13 +327,27 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Update scanner status (using fixed UUID for the single scanner status record)
+    // Update scanner status - count actual tokens detected TODAY from database
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISOString = today.toISOString();
+
+    const { count: tokensDetectedToday, error: countError } = await supabase
+      .from("tokens")
+      .select("*", { count: "exact", head: true })
+      .gte("detected_at", todayISOString);
+
+    const { count: alertsSentToday, error: alertCountError } = await supabase
+      .from("tokens")
+      .select("*", { count: "exact", head: true })
+      .gte("last_alerted_at", todayISOString);
+
     const { data: statusData, error: statusError } = await supabase.from("scanner_status").upsert({
       id: '00000000-0000-0000-0000-000000000001',
       last_scan_time: new Date().toISOString(),
-      scan_count: 1,
-      tokens_detected_today: scanned,
-      alerts_sent_today: alerted,
+      scan_count: scanned > 0 ? 1 : 0,  // Just track if we scanned anything
+      tokens_detected_today: tokensDetectedToday || 0,  // Count from DB
+      alerts_sent_today: alertsSentToday || 0,          // Count from DB
       is_healthy: true,
     });
 
