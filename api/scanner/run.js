@@ -77,8 +77,9 @@ module.exports = async (req, res) => {
 
         // Format token age - convert milliseconds to human-readable format
         let ageFormatted = "N/A";
+        let ageSeconds = Infinity; // Default: treat as very old if no creation time
         if (pair.pairCreatedAt) {
-          const ageSeconds = Math.floor((Date.now() - new Date(pair.pairCreatedAt).getTime()) / 1000);
+          ageSeconds = Math.floor((Date.now() - new Date(pair.pairCreatedAt).getTime()) / 1000);
           // Format as "Xday Xhr Xmin" etc
           const parts = [];
           let remaining = ageSeconds;
