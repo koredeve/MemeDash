@@ -1025,30 +1025,41 @@
     </div>
   </div>
 
-  <!-- Telegram Bot Configuration Modal -->
+  <!-- Telegram Connection Modal -->
   <div id="telegramConfigModal" class="modal-overlay">
     <div class="modal-card">
       <button class="modal-close" onclick="closeModal('telegramConfigModal')">✕</button>
-      <h2>🤖 Setup Your Telegram Bot</h2>
-      <div style="font-size: 13px; line-height: 1.6; color: #8b92b0;">
-        <p><strong>How to get alerts on your own bot:</strong></p>
-        <ol style="margin-left: 20px; margin-top: 10px;">
-          <li>Create a Telegram bot: <a href="https://t.me/botfather" target="_blank" style="color: #3b82f6;">@BotFather → /newbot</a></li>
-          <li>Copy the <strong>Bot Token</strong> (format: 123456:ABC-DEF...)</li>
-          <li>Get your <strong>Chat ID</strong>: Send any message to your bot, then go to: <a href="https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates" target="_blank" style="color: #3b82f6;">this link</a> and find your chat_id</li>
-          <li>Paste both below and save</li>
-        </ol>
+      <h2>🤖 Connect Your Telegram</h2>
+      <div style="font-size: 14px; line-height: 1.8; color: #8b92b0;">
+        <div id="connectionStatus">
+          <p style="margin-bottom: 20px;"><strong>Get alerts directly to your Telegram:</strong></p>
 
-        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px;">
-          <input type="text" id="botToken" placeholder="Bot Token (123456:ABC-DEF...)"
-            style="padding: 10px; background: var(--bg-accent); border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; font-size: 12px;">
-          <input type="text" id="chatId" placeholder="Chat ID (your Telegram user ID)"
-            style="padding: 10px; background: var(--bg-accent); border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; font-size: 12px;">
-          <button onclick="saveTelegramConfig()"
-            style="padding: 10px 16px; background: var(--blue); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 10px;">
-            💾 Save My Bot Config
+          <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin-bottom: 10px;">✨ <strong>One-click authorization:</strong></p>
+            <ol style="margin-left: 20px; margin-bottom: 15px;">
+              <li>Click the button below</li>
+              <li>Start the @memedash_bot</li>
+              <li>Click "🔗 Connect to MemeDash"</li>
+              <li>Done! Alerts arrive instantly</li>
+            </ol>
+
+            <a href="https://t.me/memedash_bot?start=connect" target="_blank"
+              style="display: inline-block; padding: 12px 24px; background: #0088cc; color: white; border-radius: 6px; text-decoration: none; font-weight: 600; cursor: pointer; margin: 10px 0;">
+              🔗 Connect with @memedash_bot
+            </a>
+          </div>
+
+          <div style="font-size: 12px; color: #5a6178;">
+            💡 <strong>Tip:</strong> After connecting in Telegram, check the status below (may take a few seconds to update)
+          </div>
+        </div>
+
+        <div id="connectionCheckArea" style="margin-top: 20px; display: none;">
+          <button onclick="checkTelegramConnection()"
+            style="padding: 10px 16px; background: var(--green); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; width: 100%;">
+            ✓ Check Connection Status
           </button>
-          <div id="configMessage" style="font-size: 12px; padding: 10px; border-radius: 4px; display: none;"></div>
+          <div id="connectionMessage" style="font-size: 12px; padding: 10px; margin-top: 10px; border-radius: 4px; display: none;"></div>
         </div>
       </div>
     </div>
@@ -1208,82 +1219,58 @@
       }
     }
 
-    // Generate or get session ID (unique per browser/device)
-    function getSessionId() {
-      let sessionId = localStorage.getItem('memedash_session_id');
+    // Generate or get Telegram user session ID
+    function getTelegramSessionId() {
+      let sessionId = localStorage.getItem('telegram_session_id');
       if (!sessionId) {
+        // Will be set when user connects via bot
         sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('memedash_session_id', sessionId);
+        localStorage.setItem('telegram_session_id', sessionId);
       }
       return sessionId;
     }
 
     async function configWebhook() {
-      // Show telegram config modal
+      // Show telegram connection modal
       openModal('telegramConfigModal');
-      await loadTelegramConfig();
+
+      // Auto-check if already connected
+      await checkTelegramConnection();
     }
 
-    async function loadTelegramConfig() {
+    async function checkTelegramConnection() {
       try {
-        const sessionId = getSessionId();
-        const response = await fetch(`/api/telegram/get-config?session_id=${sessionId}`);
+        const sessionId = getTelegramSessionId();
+        const response = await fetch(`/api/telegram/connect?session_id=${sessionId}`);
         const data = await response.json();
 
-        if (data.has_config && data.config) {
-          document.getElementById('botToken').value = data.config.bot_token;
-          document.getElementById('chatId').value = data.config.chat_id;
-        }
-      } catch (error) {
-        console.error('Failed to load config:', error);
-      }
-    }
+        const msgDiv = document.getElementById('connectionMessage');
+        const checkBtn = document.getElementById('connectionCheckArea');
 
-    async function saveTelegramConfig() {
-      try {
-        const botToken = document.getElementById('botToken').value.trim();
-        const chatId = document.getElementById('chatId').value.trim();
-        const sessionId = getSessionId();
-        const msgDiv = document.getElementById('configMessage');
-
-        if (!botToken || !chatId) {
-          msgDiv.textContent = '❌ Please enter both bot token and chat ID';
-          msgDiv.style.background = 'rgba(239, 68, 68, 0.1)';
-          msgDiv.style.color = '#ef4444';
-          msgDiv.style.display = 'block';
-          return;
-        }
-
-        msgDiv.textContent = '⏳ Saving...';
-        msgDiv.style.display = 'block';
-
-        const response = await fetch('/api/telegram/save-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: sessionId,
-            bot_token: botToken,
-            chat_id: chatId,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          msgDiv.textContent = '✅ Bot config saved! You\'ll now receive alerts on your bot.';
+        if (data.is_connected && data.connection) {
+          msgDiv.textContent = `✅ Connected as ${data.connection.display_name}! Alerts will be sent to your Telegram.`;
           msgDiv.style.background = 'rgba(16, 185, 129, 0.1)';
           msgDiv.style.color = '#10b981';
-          setTimeout(() => closeModal('telegramConfigModal'), 2000);
+          msgDiv.style.display = 'block';
+          checkBtn.style.display = 'block';
+
+          setTimeout(() => {
+            closeModal('telegramConfigModal');
+          }, 2000);
         } else {
-          msgDiv.textContent = '❌ ' + (data.error || 'Failed to save');
-          msgDiv.style.background = 'rgba(239, 68, 68, 0.1)';
-          msgDiv.style.color = '#ef4444';
+          msgDiv.textContent = '⏳ Waiting for connection... Complete the steps above and click the button again.';
+          msgDiv.style.background = 'rgba(59, 130, 246, 0.1)';
+          msgDiv.style.color = '#3b82f6';
+          msgDiv.style.display = 'block';
+          checkBtn.style.display = 'block';
         }
       } catch (error) {
-        document.getElementById('configMessage').textContent = '❌ ' + error.message;
-        document.getElementById('configMessage').style.display = 'block';
-        document.getElementById('configMessage').style.background = 'rgba(239, 68, 68, 0.1)';
-        document.getElementById('configMessage').style.color = '#ef4444';
+        const msgDiv = document.getElementById('connectionMessage');
+        msgDiv.textContent = '❌ Error checking connection: ' + error.message;
+        msgDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+        msgDiv.style.color = '#ef4444';
+        msgDiv.style.display = 'block';
+        document.getElementById('connectionCheckArea').style.display = 'block';
       }
     }
 

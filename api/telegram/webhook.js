@@ -11,8 +11,73 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { message } = req.body;
+    const { message, callback_query } = req.body;
 
+    // Handle callback query (button clicks in Telegram)
+    if (callback_query) {
+      const userId = callback_query.from.id;
+      const chatId = callback_query.from.id;
+      const firstName = callback_query.from.first_name;
+      const lastName = callback_query.from.last_name || '';
+      const data = callback_query.data;
+
+      console.log(`[WEBHOOK] Callback query from ${firstName}: ${data}`);
+
+      // Handle "Connect to MemeDash" button
+      if (data === 'connect_memedash') {
+        try {
+          // Save connection to database via connect endpoint
+          const connectResponse = await fetch(
+            new URL('/api/telegram/connect', process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: userId,
+                first_name: firstName,
+                last_name: lastName,
+                chat_id: chatId,
+              }),
+            }
+          );
+
+          const connectData = await connectResponse.json();
+
+          if (connectData.success) {
+            // Send confirmation message
+            await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: chatId,
+                text: `✅ ${connectData.message}\n\nYou're all set! Token alerts will appear here automatically.`,
+                parse_mode: 'Markdown',
+              }),
+            });
+
+            // Answer the callback query
+            await fetch(
+              `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  callback_query_id: callback_query.id,
+                  text: '✅ Connected to MemeDash!',
+                  show_alert: false,
+                }),
+              }
+            );
+          }
+        } catch (error) {
+          console.error('[WEBHOOK] Connection error:', error);
+        }
+      }
+
+      return res.status(200).json({ success: true });
+    }
+
+    // Handle text messages
     if (!message || !message.chat || !message.from) {
       return res.status(400).json({ error: 'Invalid telegram message format' });
     }
@@ -108,7 +173,31 @@ Commands:
 
 Let's find the next moonshot! 🌙
   `;
-  await sendTelegramMessage(chatId, message);
+
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (botToken) {
+    // Send message with connect button
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: '🔗 Connect to MemeDash',
+                callback_data: 'connect_memedash',
+              },
+            ],
+          ],
+        },
+      }),
+    });
+  } else {
+    await sendTelegramMessage(chatId, message);
+  }
 }
 
 async function handleAdd(chatId, userId, symbol, notes) {
