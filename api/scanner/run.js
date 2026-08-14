@@ -327,21 +327,19 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Update scanner status - count actual tokens detected TODAY from database
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayISOString = today.toISOString();
+    // Update scanner status - count tokens from last 24 hours (what we display in feed)
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     const { count: tokensDetectedToday, error: countError } = await supabase
       .from("tokens")
       .select("id", { count: "exact" })
-      .gte("detected_at", todayISOString);
+      .gte("detected_at", oneDayAgo);
 
     const { count: alertsSentToday, error: alertCountError } = await supabase
       .from("tokens")
       .select("id", { count: "exact" })
       .not("last_alerted_at", "is", null)
-      .gte("last_alerted_at", todayISOString);
+      .gte("last_alerted_at", oneDayAgo);
 
     const { data: statusData, error: statusError } = await supabase.from("scanner_status").upsert({
       id: '00000000-0000-0000-0000-000000000001',
