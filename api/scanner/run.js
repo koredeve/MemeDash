@@ -23,44 +23,32 @@ module.exports = async (req, res) => {
       "mSoLzYCxHdgfd3DjErZwesF3injbgnc9hcc5DTe5pump", // mSOL
     ];
 
-    // Fetch latest tokens from Solscan (real new tokens + activity)
-    let tokenList = [];
+    // Fetch latest tokens - try multiple sources for real new tokens with activity
+    let tokenMints = [];
+
+    // Strategy 1: Get recently traded tokens from DexScreener
     try {
-      const solscanResponse = await fetch(
-        "https://api.solscan.io/token:list?sortBy=createdTime&direction=desc&limit=100&offset=0",
-        { timeout: 10000 }
+      const dexResponse = await fetch(
+        "https://api.dexscreener.com/token-boosts/latest/v1?limit=100",
+        { timeout: 8000 }
       );
-      const solscanData = await solscanResponse.json();
+      const boosts = await dexResponse.json();
 
-      if (solscanData.data && Array.isArray(solscanData.data)) {
-        tokenList = solscanData.data
-          .map(t => t.address)
-          .filter(a => a && a.length > 30); // Valid mint addresses
-      }
-    } catch (solscanError) {
-      console.log("[SCANNER] Solscan API unavailable, trying DexScreener");
+      if (Array.isArray(boosts) && boosts.length > 0) {
+        tokenMints = boosts
+          .filter(b => b.tokenAddress && b.chainId === 'solana')
+          .map(b => b.tokenAddress);
 
-      // Fallback: Try getting activity from DexScreener
-      try {
-        const dexResponse = await fetch(
-          "https://api.dexscreener.com/token-pairs/v1/solana?limit=100",
-          { timeout: 10000 }
-        );
-        const dexData = await dexResponse.json();
-        if (dexData.pairs && Array.isArray(dexData.pairs)) {
-          tokenList = dexData.pairs
-            .map(p => p.baseToken?.address)
-            .filter(a => a);
-        }
-      } catch (dexError) {
-        console.log("[SCANNER] All APIs failed");
+        console.log(`[SCANNER] Found ${tokenMints.length} tokens from DexScreener boosts`);
       }
+    } catch (err) {
+      console.log(`[SCANNER] DexScreener fetch error: ${err.message}`);
     }
 
-    if (tokenList.length === 0) {
+    if (tokenMints.length === 0) {
       return res.status(200).json({
         success: true,
-        message: "No new tokens found",
+        message: "No tokens available for scanning",
         scanned: 0,
         alerted: 0,
       });
@@ -70,7 +58,7 @@ module.exports = async (req, res) => {
     let alerted = 0;
 
     // Process each token
-    for (const tokenAddress of tokenList.slice(0, 100)) {
+    for (const tokenAddress of tokenMints.slice(0, 50)) {
       try {
         const boost = { tokenAddress, chainId: "solana" };
         if (!tokenAddress) continue;
@@ -137,10 +125,10 @@ module.exports = async (req, res) => {
 
         // QUALITY FILTERS - Only scan tokens with real fundamentals
         // 1. Meaningful liquidity (not trash tier)
-        if (liquidity < 25000) continue;
+        if (liquidity < 10000) continue;  // Lowered to catch more tokens
 
         // 2. Decent volume (not a ghost token)
-        if (volume < 50000) continue;
+        if (volume < 25000) continue;  // Lowered for newer tokens
 
         // 3. Not brand new (avoid instant rugs)
         if (ageSeconds < 900 && liquidity < 100000) continue; // If <15 min old, need $100k+ liquidity
@@ -309,12 +297,11 @@ module.exports = async (req, res) => {
           : Infinity;
 
         // Alert logic:
-        // 1. Alert on NEW tokens that pass quality score
-        // 2. Alert on STATUS CHANGES (improvement to CLEAN or detection of RUG) - but only once per hour
-        // The score itself already accounts for liquidity, so no additional threshold needed
+        // 1. Alert on NEW tokens that are clean or watch quality
+        // 2. Alert on STATUS CHANGES (improvement to CLEAN or detection of RUG)
         const shouldAlert =
-          (isNewToken && hasOrganicVolume && isHighQuality) ||  // New token that passed scoring
-          (statusChanged && (scored.classification === 'clean' || isRugged) && hoursSinceLastAlert >= 1); // Status changed + 1hr cooldown
+          (isNewToken && (scored.classification === 'clean' || scored.classification === 'watch') && !scored.isLiquidityTrap) ||
+          (statusChanged && (scored.classification === 'clean' || isRugged) && hoursSinceLastAlert >= 1);
 
         // Store in database (including market cap and deployer info)
         await supabase.from("tokens").upsert(
@@ -338,7 +325,7 @@ module.exports = async (req, res) => {
             is_farmed: isFarmed,
             organic_volume: isOrganicVolume,
             buy_ratio: buyRatio,
-            detected_at: isNewToken ? new Date().toISOString() : existingToken.detected_at,
+            detected_at: isNewToken ? new Date().toISOString() : new Date().toISOString(),  // ALWAYS update to NOW so it shows on dashboard
             // Add market data
             market_cap: marketCap,
             fdv: fdv,
