@@ -1282,10 +1282,11 @@
       try {
         document.getElementById('sync-status').textContent = '📤 Sending audit...';
 
-        const response = await fetch('/api/tokens/audit-send', {
+        const response = await fetch('/api/tokens/manage', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            action: 'audit-send',
             tokenAddress: mint,
             symbol: symbol
           })
@@ -1474,10 +1475,11 @@ Click "Run Audit" to send detailed report to Telegram with:
         ];
 
         for (const token of demoTokens) {
-          await fetch('/api/tokens/score', {
+          await fetch('/api/tokens/manage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              action: 'score',
               tokenAddress: `demo_${token.symbol}_${Math.random().toString(36).slice(2)}`,
               symbol: token.symbol,
               name: `${token.symbol} Token`,
