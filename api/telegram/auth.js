@@ -163,6 +163,8 @@ module.exports = async (req, res) => {
           session_id: bot.session_id,
           bot_token: bot.bot_token,
           chat_id: bot.chat_id,
+          first_name: bot.first_name,
+          last_name: bot.last_name,
         }));
 
         console.log(`[LIST BOTS] Found ${bots.length} registered users`);
