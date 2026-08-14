@@ -23,13 +23,44 @@ module.exports = async (req, res) => {
       "mSoLzYCxHdgfd3DjErZwesF3injbgnc9hcc5DTe5pump", // mSOL
     ];
 
-    // Fetch latest tokens from DexScreener boosts (promoted tokens with activity)
-    const dexResponse = await fetch(
-      "https://api.dexscreener.com/token-boosts/latest/v1?limit=50"
-    );
-    const boosts = await dexResponse.json();
+    // Fetch latest tokens from pump.fun (real new tokens, not just boosted)
+    let tokenList = [];
+    try {
+      const pumpResponse = await fetch(
+        "https://pumpportal.fun/api/trades/latest?limit=100",
+        { timeout: 10000 }
+      );
+      const pumpData = await pumpResponse.json();
 
-    if (!Array.isArray(boosts) || boosts.length === 0) {
+      // Extract unique tokens from pump.fun trades
+      if (Array.isArray(pumpData)) {
+        const tokenMap = {};
+        pumpData.forEach(trade => {
+          if (trade.mint && !tokenMap[trade.mint]) {
+            tokenMap[trade.mint] = trade.mint;
+            tokenList.push(trade.mint);
+          }
+        });
+      }
+    } catch (pumpError) {
+      console.log("[SCANNER] pump.fun API unavailable, using DexScreener fallback");
+
+      // Fallback to DexScreener boosts if pump.fun fails
+      try {
+        const dexResponse = await fetch(
+          "https://api.dexscreener.com/token-boosts/latest/v1?limit=50",
+          { timeout: 10000 }
+        );
+        const boosts = await dexResponse.json();
+        if (Array.isArray(boosts)) {
+          tokenList = boosts.map(b => b.tokenAddress).filter(t => t);
+        }
+      } catch (dexError) {
+        console.log("[SCANNER] Both APIs failed");
+      }
+    }
+
+    if (tokenList.length === 0) {
       return res.status(200).json({
         success: true,
         message: "No new tokens found",
@@ -42,9 +73,10 @@ module.exports = async (req, res) => {
     let alerted = 0;
 
     // Process each token
-    for (const boost of boosts.slice(0, 20)) {
+    for (const tokenAddress of tokenList.slice(0, 50)) {
       try {
-        if (!boost.tokenAddress || boost.chainId !== "solana") continue;
+        const boost = { tokenAddress, chainId: "solana" };
+        if (!tokenAddress) continue;
 
         // SKIP established/known tokens (not new token opportunities)
         if (EXCLUDED_MINTS.includes(boost.tokenAddress)) {
