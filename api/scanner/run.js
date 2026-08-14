@@ -230,37 +230,32 @@ module.exports = async (req, res) => {
 
         // Send alert ONLY if: new token OR status changed (not every scan!)
         if (shouldAlert) {
-          alerted++;
-          const botToken = process.env.TELEGRAM_BOT_TOKEN;
-          const chatId = 5824497779;
+          // Choose emoji based on token status
+          let emoji = "🔔";
+          if (scored.classification === "clean") emoji = "✨";
+          if (scored.classification === "avoid") emoji = isRugged ? "🚨" : "⚠️";
 
-          if (botToken) {
-            // Choose emoji based on token status
-            let emoji = "🔔";
-            if (scored.classification === "clean") emoji = "✨";
-            if (scored.classification === "avoid") emoji = isRugged ? "🚨" : "⚠️";
+          const volumeStatus = scored.volumeRatio > 10 ? "⚠️ High vol ratio" : "✓ Organic";
 
-            const volumeStatus = scored.volumeRatio > 10 ? "⚠️ High vol ratio" : "✓ Organic";
+          // Format market cap
+          const mcapDisplay =
+            marketCap > 0
+              ? marketCap > 1000000
+                ? `$${(marketCap / 1000000).toFixed(1)}M`
+                : `$${(marketCap / 1000).toFixed(1)}k`
+              : "N/A";
 
-            // Format market cap
-            const mcapDisplay =
-              marketCap > 0
-                ? marketCap > 1000000
-                  ? `$${(marketCap / 1000000).toFixed(1)}M`
-                  : `$${(marketCap / 1000).toFixed(1)}k`
-                : "N/A";
+          const fdvDisplay =
+            fdv > 0
+              ? fdv > 1000000
+                ? `$${(fdv / 1000000).toFixed(1)}M`
+                : `$${(fdv / 1000).toFixed(1)}k`
+              : "N/A";
 
-            const fdvDisplay =
-              fdv > 0
-                ? fdv > 1000000
-                  ? `$${(fdv / 1000000).toFixed(1)}M`
-                  : `$${(fdv / 1000).toFixed(1)}k`
-                : "N/A";
-
-            // Different message format for rugged tokens
-            let message;
-            if (isRugged) {
-              message = `${emoji} *RUG DETECTED!* - AVOID
+          // Different message format for rugged tokens
+          let message;
+          if (isRugged) {
+            message = `${emoji} *RUG DETECTED!* - AVOID
 
 💰 $${baseToken.symbol || "TOKEN"}
 🚨 Status: *${scored.verdict}*
@@ -283,8 +278,8 @@ module.exports = async (req, res) => {
 ⚠️ DO NOT BUY - AVOID THIS TOKEN
 
 🔗 [View on DexScreener](https://dexscreener.com/solana/${boost.tokenAddress})`;
-            } else {
-              message = `${emoji} *${scored.classification.toUpperCase()}* | ${volumeStatus}
+          } else {
+            message = `${emoji} *${scored.classification.toUpperCase()}* | ${volumeStatus}
 
 💰 $${baseToken.symbol || "TOKEN"}
 📊 Score: *${scored.score}/100* (${scored.verdict})
@@ -304,21 +299,53 @@ module.exports = async (req, res) => {
 📊 [Send Full Audit](https://lightmeme.vercel.app/?token=${boost.tokenAddress})
 
 ⏰ Age: ${ageFormatted}`;
-            }
+          }
 
-            await fetch(
-              `https://api.telegram.org/bot${botToken}/sendMessage`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  chat_id: chatId,
-                  text: message,
-                  parse_mode: "Markdown",
-                  disable_web_page_preview: false,
-                }),
+          // Get all registered user bots and send to each
+          try {
+            const listBotsResponse = await fetch("https://lightmeme.vercel.app/api/telegram/list-bots");
+            const botsData = await listBotsResponse.json();
+            const userBots = botsData.bots || [];
+
+            if (userBots.length === 0) {
+              // Fallback: send to owner's bot if no users registered
+              const ownerToken = process.env.TELEGRAM_BOT_TOKEN;
+              const ownerId = 5824497779;
+              if (ownerToken) {
+                alerted++;
+                await fetch(`https://api.telegram.org/bot${ownerToken}/sendMessage`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    chat_id: ownerId,
+                    text: message,
+                    parse_mode: "Markdown",
+                    disable_web_page_preview: false,
+                  }),
+                });
               }
-            );
+            } else {
+              // Send to all registered user bots
+              for (const bot of userBots) {
+                alerted++;
+                try {
+                  await fetch(`https://api.telegram.org/bot${bot.bot_token}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      chat_id: bot.chat_id,
+                      text: message,
+                      parse_mode: "Markdown",
+                      disable_web_page_preview: false,
+                    }),
+                  });
+                } catch (botError) {
+                  console.error(`[SCANNER] Failed to send to bot for session ${bot.session_id}:`, botError.message);
+                }
+              }
+            }
+          } catch (fetchError) {
+            console.error("[SCANNER] Error fetching user bots:", fetchError.message);
           }
         }
       } catch (error) {
