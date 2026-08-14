@@ -23,13 +23,15 @@ module.exports = async (req, res) => {
       "mSoLzYCxHdgfd3DjErZwesF3injbgnc9hcc5DTe5pump", // mSOL
     ];
 
-    // Fetch latest tokens from DexScreener
+    // Fetch latest tokens from DexScreener latest pairs (NOT just boosts)
+    // This gets actual new token launches, not just paid promotions
     const dexResponse = await fetch(
-      "https://api.dexscreener.com/token-boosts/latest/v1?limit=50"
+      "https://api.dexscreener.com/latest/pairs/v1/solana?limit=50&sort=liquidity"
     );
-    const boosts = await dexResponse.json();
+    const data = await dexResponse.json();
+    const pairs = data.pairs || [];
 
-    if (!Array.isArray(boosts) || boosts.length === 0) {
+    if (!Array.isArray(pairs) || pairs.length === 0) {
       return res.status(200).json({
         success: true,
         message: "No new tokens found",
@@ -42,9 +44,10 @@ module.exports = async (req, res) => {
     let alerted = 0;
 
     // Process each token
-    for (const boost of boosts.slice(0, 20)) {
+    for (const pair of pairs.slice(0, 30)) {
       try {
-        if (!boost.tokenAddress || boost.chainId !== "solana") continue;
+        const boost = { tokenAddress: pair.baseToken?.address, chainId: "solana" };
+        if (!pair.baseToken?.address || !pair) continue;
 
         // SKIP established/known tokens (not new token opportunities)
         if (EXCLUDED_MINTS.includes(boost.tokenAddress)) {
@@ -52,20 +55,8 @@ module.exports = async (req, res) => {
           continue;
         }
 
-        // Fetch pair data from DexScreener
-        const pairResponse = await fetch(
-          `https://api.dexscreener.com/token-pairs/v1/solana/${boost.tokenAddress}`
-        );
-        const pairData = await pairResponse.json();
-
-        const pairs = Array.isArray(pairData) ? pairData : [];
-        if (pairs.length === 0) continue;
-
-        // Get best pair (highest liquidity)
-        const pair = pairs.sort(
-          (a, b) =>
-            (Number(b.liquidity?.usd) || 0) - (Number(a.liquidity?.usd) || 0)
-        )[0];
+        // We already have the pair data from the latest pairs endpoint
+        if (!pair.baseToken || !pair.liquidity) continue;
 
         const baseToken = pair.baseToken || {};
         const liquidity = Number(pair.liquidity?.usd || 0);
