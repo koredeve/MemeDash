@@ -303,7 +303,7 @@ module.exports = async (req, res) => {
 
           // Get all registered user bots and send to each
           try {
-            const listBotsResponse = await fetch("https://lightmeme.vercel.app/api/telegram/list-bots");
+            const listBotsResponse = await fetch("https://lightmeme.vercel.app/api/telegram/auth?action=list-bots");
             const botsData = await listBotsResponse.json();
             const userBots = botsData.bots || [];
 

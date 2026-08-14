@@ -1241,7 +1241,7 @@
     async function checkTelegramConnection() {
       try {
         const sessionId = getTelegramSessionId();
-        const response = await fetch(`/api/telegram/connect?session_id=${sessionId}`);
+        const response = await fetch(`/api/telegram/auth?action=get-config&session_id=${sessionId}`);
         const data = await response.json();
 
         const msgDiv = document.getElementById('connectionMessage');

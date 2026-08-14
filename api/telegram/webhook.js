@@ -26,9 +26,9 @@ module.exports = async (req, res) => {
       // Handle "Connect to MemeDash" button
       if (data === 'connect_memedash') {
         try {
-          // Save connection to database via connect endpoint
+          // Save connection to database via consolidated auth endpoint
           const connectResponse = await fetch(
-            new URL('/api/telegram/connect', process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+            new URL('/api/telegram/auth', process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
