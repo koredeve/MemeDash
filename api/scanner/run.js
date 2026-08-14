@@ -297,13 +297,15 @@ module.exports = async (req, res) => {
           : Infinity;
 
         // Alert logic:
-        // 1. Alert on NEW tokens that are clean or watch quality
-        // 2. Alert on STATUS CHANGES (improvement to CLEAN or detection of RUG)
+        // 1. Alert on NEW CLEAN tokens with organic volume
+        // 2. Alert on NEW WATCH tokens only if high quality (score 65+, no deployer rugs, no fake volume)
+        // 3. Alert on STATUS CHANGES (improvement to CLEAN or detection of RUG)
         const shouldAlert =
-          (isNewToken && (scored.classification === 'clean' || scored.classification === 'watch') && !scored.isLiquidityTrap) ||
+          (isNewToken && scored.classification === 'clean' && !scored.isLiquidityTrap && !scored.isFakeVolume && deployerRugs === 0) ||
+          (isNewToken && scored.classification === 'watch' && scored.score >= 65 && !scored.isFakeVolume && deployerRugs === 0 && !scored.isLiquidityTrap) ||
           (statusChanged && (scored.classification === 'clean' || isRugged) && hoursSinceLastAlert >= 1);
 
-        // Store in database (including market cap and deployer info)
+        // Store in database - only use columns that exist in schema
         await supabase.from("tokens").upsert(
           {
             mint: boost.tokenAddress,
@@ -316,21 +318,11 @@ module.exports = async (req, res) => {
             volume,
             fomo_pressure: scored.fomoPressure,
             fake_volume: scored.isFakeVolume,
-            is_liquidity_trap: scored.isLiquidityTrap,  // NEW: Flag trapped liquidity
             deployer_rugs: deployerRugs,
-            deployer_address: deployerAddress,
-            deployer_token_count: deployerTokenCount,
-            deployer_success_rate: deployerSuccessRate,
-            is_pump_dump: isPumpAndDump,
-            is_farmed: isFarmed,
-            organic_volume: isOrganicVolume,
-            buy_ratio: buyRatio,
-            detected_at: isNewToken ? new Date().toISOString() : new Date().toISOString(),  // ALWAYS update to NOW so it shows on dashboard
-            // Add market data
             market_cap: marketCap,
             fdv: fdv,
             price_usd: priceUsd,
-            // Track last alert time to prevent spam
+            detected_at: isNewToken ? new Date().toISOString() : new Date().toISOString(),  // ALWAYS update to NOW so it shows on dashboard
             last_alerted_at: shouldAlert ? new Date().toISOString() : existingToken?.last_alerted_at,
           },
           { onConflict: "mint" }

@@ -16,10 +16,10 @@ const { scoreToken } = require('./lib/token-scorer');
 
 const PUMP_FUN_WS = 'wss://pumpportal.fun/api/data';
 
-// Initialize Supabase
+// Initialize Supabase (use SERVICE_ROLE_KEY for writes due to RLS)
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 let ws;
@@ -166,7 +166,7 @@ async function processNewToken(data) {
 
     console.log(`   📊 Score: ${scored.score}/100 (${scored.classification})`);
 
-    // Store in database
+    // Store in database - only use columns that exist in schema
     await supabase.from('tokens').upsert(
       {
         mint,
@@ -179,14 +179,11 @@ async function processNewToken(data) {
         volume,
         fomo_pressure: scored.fomoPressure,
         fake_volume: scored.isFakeVolume,
-        is_liquidity_trap: scored.isLiquidityTrap,
-        organic_volume: isOrganicVolume,
-        buy_ratio: buyRatio,
+        deployer_rugs: 0,  // pump.fun detections assumed clean
         detected_at: new Date().toISOString(),
         market_cap: marketCap,
         fdv: fdv,
         price_usd: Number(pair.priceUsd || 0),
-        source: 'pump.fun-websocket',
       },
       { onConflict: 'mint' }
     );
